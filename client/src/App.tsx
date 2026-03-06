@@ -1,10 +1,12 @@
-function App() {
+import { useState } from 'react'
+import { SampleDarkMode } from "./components/SampleDarkMode.tsx"
+import './App.css'
 
-  return (
-  <div>
-     <h1 className="text-blue-500">Hello World</h1> 
-    </div>
-  )
+function App() { 
+
+  return <>
+    <SampleDarkMode />
+  </>
 }
 
 export default App
