@@ -2,4 +2,12 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-
+@layer base {
+  body {
+    background-color: #f5f5f5; /* neutral-100 */
+  }
+  
+  .dark body {
+    background-color: #171717; /* neutral-900 */
+  }
+}
