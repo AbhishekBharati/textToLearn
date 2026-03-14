@@ -1,21 +1,20 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, createContext, useContext } from 'react';
 import { Outlet } from 'react-router-dom';
-import { Sidebar, SidebarBody, SidebarLink } from './Sidebar.tsx';
+import { SidebarBody, SidebarLink, SidebarProvider, useSidebar } from './Sidebar.tsx';
+import { DownloadComponent } from './DownloadComponent.tsx';
+import { SaveCourse } from './SaveCourse.tsx';
 import Switch from './ui/Switch.tsx';
 import { 
   Navbar, 
   NavBody, 
-  NavItems, 
   NavbarLogo, 
   MobileNav,
-  MobileNavHeader,
-  MobileNavToggle,
-  MobileNavMenu
+  MobileNavHeader
 } from './ui/Navbar.tsx';
 import { 
   IconMessageCircle,
   IconBookmark,
-  IconUserBolt 
+  IconMenu2
 } from "@tabler/icons-react";
 import { cn } from "../utils/utils.ts";
 
@@ -37,14 +36,9 @@ export const Layout = () => {
     },
   ];
 
-  const navItems = [
-    { name: "Features", link: "#" },
-    { name: "Pricing", link: "#" },
-    { name: "About", link: "#" },
-  ];
+  const navContent : string = "What do you wanna Learn Today?"
 
   const [open, setOpen] = useState(false);
-  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
 
   useEffect(() => {
@@ -56,11 +50,11 @@ export const Layout = () => {
   }, [isDarkMode]);
 
   return (
-    <div className={cn(
-      "rounded-md flex flex-col md:flex-row bg-gray-100 dark:bg-neutral-800 w-full flex-1 max-w-7xl mx-auto border border-neutral-200 dark:border-neutral-700 overflow-hidden",
-      "h-screen" 
-    )}>
-      <Sidebar open={open} setOpen={setOpen}>
+    <SidebarProvider open={open} setOpen={setOpen} animate={true}>
+      <div className={cn(
+        "rounded-md flex flex-col md:flex-row bg-neutral-400 dark:bg-neutral-800 w-full flex-1 max-w-7xl mx-auto border border-neutral-200 dark:border-neutral-700 overflow-hidden",
+        "h-screen" 
+      )}>
         <SidebarBody className="justify-between gap-10">
           <div className="flex flex-col flex-1 overflow-y-auto overflow-x-hidden">
             {open ? <Logo /> : <LogoIcon />}
@@ -88,43 +82,51 @@ export const Layout = () => {
             />
           </div>
         </SidebarBody>
-      </Sidebar>
-      <div className="flex flex-col flex-1 overflow-hidden">
-        <Navbar className="top-0 sticky">
-          <NavBody>
-            <NavbarLogo />
-            <NavItems items={navItems} />
-            <div className="flex items-center">
-              <Switch checked={isDarkMode} onChange={setIsDarkMode} />
-            </div>
-          </NavBody>
-          <MobileNav>
-            <MobileNavHeader>
-              <NavbarLogo />
-              <div className="flex items-center gap-4">
+        <div className="flex flex-col flex-1 overflow-hidden">
+          <Navbar className="top-0 sticky">
+            <NavBody>
+              <div className="flex items-center gap-2">
+                 <NavbarLogo />
+              </div>
+              <div className="flex-1 text-center font-semibold text-neutral-800 dark:text-neutral-200 truncate px-4">
+                { navContent }
+              </div>
+              <div className="flex items-center justify-end gap-3">
                 <Switch checked={isDarkMode} onChange={setIsDarkMode} />
-                <MobileNavToggle 
-                  isOpen={mobileNavOpen} 
-                  onClick={() => setMobileNavOpen(!mobileNavOpen)} 
-                />
+                <DownloadComponent />
+                <SaveCourse />
               </div>
-            </MobileNavHeader>
-            <MobileNavMenu isOpen={mobileNavOpen} onClose={() => setMobileNavOpen(false)}>
-              <div className="flex flex-col gap-4">
-                {navItems.map((item) => (
-                  <a key={item.name} href={item.link} className="text-neutral-600 dark:text-neutral-300">
-                    {item.name}
-                  </a>
-                ))}
-              </div>
-            </MobileNavMenu>
-          </MobileNav>
-        </Navbar>
-        <main className="flex-1 overflow-y-auto">
-          <Outlet />
-        </main>
+            </NavBody>
+            <MobileNav>
+              <MobileNavHeader>
+                <div className="flex items-center gap-2">
+                  <SidebarToggle />
+                  <NavbarLogo />
+                </div>
+                <div className="flex items-center gap-2">
+                  <Switch checked={isDarkMode} onChange={setIsDarkMode} /> 
+                  <DownloadComponent />
+                  <SaveCourse />
+                </div>
+              </MobileNavHeader>
+            </MobileNav>
+          </Navbar>
+          <main className="flex-1 overflow-y-auto">
+            <Outlet />
+          </main>
+        </div>
       </div>
-    </div>
+    </SidebarProvider>
+  );
+};
+
+const SidebarToggle = () => {
+  const { open, setOpen } = useSidebar();
+  return (
+    <IconMenu2 
+      className="md:hidden text-neutral-800 dark:text-neutral-200 cursor-pointer" 
+      onClick={() => setOpen(!open)} 
+    />
   );
 };
 
@@ -144,8 +146,6 @@ const Logo = () => {
     </div> 
   );
 };
-
-
 
 const LogoIcon = () => {
   return (
