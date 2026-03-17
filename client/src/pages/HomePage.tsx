@@ -57,7 +57,7 @@ export const HomePage = () => {
         </form>
         
         <p className="text-xs text-center text-neutral-400 dark:text-neutral-500 mt-4">
-          TechEaze can provide detailed explanations and learning paths. Verify important information.
+          TechEaze can provide detailed explanations and learning paths. Enjoy your learning.
         </p>
       </div>
     </div>
