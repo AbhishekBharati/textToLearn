@@ -1,17 +1,21 @@
-import React, { useState } from 'react';
-import { IconSend } from '@tabler/icons-react';
+import React, { useState, useEffect } from 'react';
+import { IconSend, IconLayoutGrid } from '@tabler/icons-react';
 import { useAuth } from '../context/AuthContext.tsx';
+import { Link, useLocation } from 'react-router-dom';
+import { motion, AnimatePresence } from 'motion/react';
 
 export const HomePage = () => {
   const [inputValue, setInputValue] = useState("");
   const [loading, setLoading] = useState(false);
   const [jobId, setJobId] = useState<string | null>(null);
-  const [existingCourse, setExistingCourse] = useState<{title: string, modules: string[]} | null>(null);
+  const [existingCourse, setExistingCourse] = useState<{id: string, title: string, description: string, modules: {id: string, title: string}[]} | null>(null);
   const { isAuthenticated, token, user } = useAuth();
+  const location = useLocation();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!inputValue.trim() || !isAuthenticated || !token) return;
+  const handleSubmit = async (e?: React.FormEvent, manualTopic?: string) => {
+    if (e) e.preventDefault();
+    const topic = manualTopic || inputValue;
+    if (!topic.trim() || !isAuthenticated || !token) return;
 
     setLoading(true);
     setJobId(null);
@@ -24,23 +28,22 @@ export const HomePage = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ message: inputValue }),
+        body: JSON.stringify({ message: topic }),
       });
 
       const data = await response.json();
 
       if (response.status === 202) {
-        // Course already exists
-        console.log('Course exists:', data);
-        setExistingCourse({ title: data.title, modules: data.modules });
+        setExistingCourse(data);
         setInputValue("");
+        // Dispatch event to refresh sidebar
+        window.dispatchEvent(new Event('courseAccessed'));
       } else if (response.status === 200) {
-        // New generation started
-        console.log('Generation started:', data);
         setJobId(data.jobId);
         setInputValue("");
+        // Dispatch event to refresh sidebar
+        window.dispatchEvent(new Event('courseAccessed'));
       } else {
-        console.error('Failed to process request:', data.error);
         alert(`Error: ${data.error}`);
       }
     } catch (error) {
@@ -51,74 +54,119 @@ export const HomePage = () => {
     }
   };
 
-  return (
-    <div className="flex flex-col items-center justify-between h-full bg-white dark:bg-neutral-900 transition-colors duration-200">
-      {/* Welcome Section */}
-      <div className="flex-1 flex flex-col items-center justify-center px-4 w-full max-w-3xl">
-        <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-blue-600 via-purple-500 to-pink-500 bg-clip-text text-transparent text-center">
-          Hello {isAuthenticated ? user?.name : "User"},
-        </h1>
-        <p className="text-2xl md:text-3xl font-medium text-neutral-500 dark:text-neutral-400 text-center">
-          What do you wanna Learn Today?
-        </p>
-        
-        {/* Success / Status Messages */}
-        {jobId && (
-          <div className="mt-8 p-4 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-2xl border border-blue-200 dark:border-blue-800 animate-in fade-in slide-in-from-bottom-4">
-            Course generation started! Job ID: <span className="font-mono font-bold">{jobId}</span>
-          </div>
-        )}
+  // Handle click from Recent sidebar
+  useEffect(() => {
+    if (location.state?.searchTopic) {
+      setInputValue(location.state.searchTopic);
+      handleSubmit(undefined, location.state.searchTopic);
+      // Clear state so it doesn't re-trigger
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
-        {existingCourse && (
-          <div className="mt-8 p-6 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-2xl border border-green-200 dark:border-green-800 animate-in fade-in slide-in-from-bottom-4 w-full max-w-md">
-            <h2 className="text-xl font-bold mb-2 text-green-800 dark:text-green-300">Course Available!</h2>
-            <p className="font-medium mb-2">"{existingCourse.title}" is already in our library.</p>
-            <div className="text-sm opacity-80">
-              <p className="font-bold mb-1">Modules:</p>
-              <ul className="list-disc list-inside">
-                {existingCourse.modules.slice(0, 3).map((m, i) => (
-                  <li key={i}>{m}</li>
-                ))}
-                {existingCourse.modules.length > 3 && <li>...and {existingCourse.modules.length - 3} more</li>}
-              </ul>
-            </div>
-          </div>
-        )}
+  return (
+    <div className="flex flex-col items-center justify-between h-full bg-white dark:bg-neutral-900 transition-colors duration-200 overflow-hidden">
+      {/* Scrollable Content Area */}
+      <div className="flex-1 w-full overflow-y-auto custom-scrollbar">
+        <div className="max-w-4xl mx-auto px-6 py-12 flex flex-col items-center justify-center min-h-full">
+          <AnimatePresence mode="wait">
+            {!existingCourse ? (
+              <motion.div 
+                key="welcome"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="text-center w-full"
+              >
+                <h1 className="text-4xl md:text-6xl font-extrabold mb-6 bg-gradient-to-r from-blue-600 via-purple-500 to-pink-500 bg-clip-text text-transparent tracking-tight">
+                  Hello {isAuthenticated ? user?.name : "User"},
+                </h1>
+                <p className="text-2xl md:text-3xl font-medium text-neutral-500 dark:text-neutral-400 tracking-tight">
+                  What do you wanna Learn Today?
+                </p>
+                
+                {jobId && (
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="mt-12 p-6 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 rounded-[2rem] border border-blue-100 dark:border-blue-800 shadow-xl inline-block"
+                  >
+                    <p className="font-bold text-lg mb-1">Course generation started!</p>
+                    <p className="text-sm opacity-80">Track your progress with Job ID: <span className="font-mono">{jobId}</span></p>
+                  </motion.div>
+                )}
+              </motion.div>
+            ) : (
+              <motion.div 
+                key="course"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="w-full"
+              >
+                <div className="text-center mb-16">
+                  <span className="inline-block px-4 py-1.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-sm font-bold uppercase tracking-widest mb-6">
+                    Ready to Start
+                  </span>
+                  <h1 className="text-4xl md:text-5xl font-extrabold text-neutral-900 dark:text-neutral-100 mb-6 leading-tight tracking-tight">
+                    {existingCourse.title}
+                  </h1>
+                  <p className="text-xl text-neutral-600 dark:text-neutral-400 max-w-2xl mx-auto leading-relaxed">
+                    {existingCourse.description}
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {existingCourse.modules.map((module, idx) => (
+                    <Link 
+                      key={module.id} 
+                      to={`/modules/${module.id}`}
+                      className="flex items-center gap-5 p-8 bg-neutral-50 dark:bg-neutral-800/40 rounded-[2.5rem] border border-neutral-200 dark:border-neutral-800 hover:border-blue-500 hover:bg-white dark:hover:bg-neutral-800 transition-all group shadow-sm"
+                    >
+                      <div className="h-14 w-14 rounded-2xl bg-white dark:bg-neutral-900 flex items-center justify-center shadow-xl border border-neutral-100 dark:border-neutral-800 group-hover:scale-110 group-hover:text-blue-600 transition-all">
+                        <IconLayoutGrid size={28} />
+                      </div>
+                      <div className="flex-1 text-left">
+                        <h3 className="font-bold text-xs text-blue-600 dark:text-blue-400 uppercase tracking-[0.2em] mb-1">Module {idx + 1}</h3>
+                        <p className="text-xl font-bold text-neutral-800 dark:text-neutral-200 leading-tight">
+                          {module.title}
+                        </p>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
 
-      {/* Chat Input Section */}
-      <div className="w-full max-w-3xl px-4 pb-8">
-        <form 
-          onSubmit={handleSubmit}
-          className="relative group"
-        >
-          <div className="flex items-center bg-neutral-100 dark:bg-neutral-800 rounded-3xl p-2 pl-6 shadow-sm border border-transparent focus-within:border-neutral-300 dark:focus-within:border-neutral-700 transition-all duration-200">
+      {/* Fixed Chat Input Section */}
+      <div className="w-full max-w-3xl px-6 pb-10 pt-4 bg-gradient-to-t from-white dark:from-neutral-900 via-white/80 dark:via-neutral-900/80 to-transparent backdrop-blur-sm">
+        <form onSubmit={handleSubmit} className="relative group">
+          <div className="flex items-center bg-neutral-100 dark:bg-neutral-800/80 rounded-[2rem] p-2 pl-8 shadow-2xl border border-transparent focus-within:border-blue-500/50 transition-all duration-300">
             <input
               type="text"
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               disabled={loading}
-              placeholder={loading ? "Checking..." : "Enter a topic or ask a question..."}
-              className="flex-1 bg-transparent border-none outline-none py-3 text-neutral-800 dark:text-neutral-200 placeholder-neutral-500 text-lg"
+              placeholder={loading ? "Analyzing library..." : "Explore another topic..."}
+              className="flex-1 bg-transparent border-none outline-none py-4 text-neutral-800 dark:text-neutral-200 placeholder-neutral-500 text-lg"
             />
-            
-            <div className="flex items-center gap-1 md:gap-2 mr-2">
-              <button 
-                type="submit"
-                disabled={!inputValue.trim() || loading || !isAuthenticated}
-                className={`p-2 rounded-full transition-all duration-200 ${
-                  inputValue.trim() && !loading && isAuthenticated
-                  ? "bg-blue-600 text-white shadow-md hover:bg-blue-700" 
-                  : "text-neutral-400 cursor-not-allowed"
-                }`}
-              >
-                {loading ? (
-                  <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                ) : (
-                  <IconSend size={22} />
-                )}
-              </button>
-            </div>
+            <button 
+              type="submit"
+              disabled={!inputValue.trim() || loading || !isAuthenticated}
+              className={`p-3 rounded-full transition-all duration-300 mr-2 ${
+                inputValue.trim() && !loading && isAuthenticated
+                ? "bg-blue-600 text-white shadow-xl hover:bg-blue-700 hover:scale-105 active:scale-95" 
+                : "text-neutral-400 cursor-not-allowed"
+              }`}
+            >
+              {loading ? (
+                <div className="h-6 w-6 border-3 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                <IconSend size={24} />
+              )}
+            </button>
           </div>
         </form>
         
