@@ -2,9 +2,11 @@ package com.textToLearn.server.controller;
 
 import com.textToLearn.server.dto.CourseRequest;
 import com.textToLearn.server.model.Course;
+import com.textToLearn.server.model.JobStatus;
 import com.textToLearn.server.model.Module;
 import com.textToLearn.server.model.User;
 import com.textToLearn.server.repository.CourseRepository;
+import com.textToLearn.server.repository.JobStatusRepository;
 import com.textToLearn.server.repository.LessonRepository;
 import com.textToLearn.server.repository.ModuleRepository;
 import com.textToLearn.server.repository.UserRepository;
@@ -16,6 +18,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -38,6 +41,9 @@ public class CourseController {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private JobStatusRepository jobStatusRepository;
 
     @Autowired
     private RabbitTemplate rabbitTemplate;
@@ -101,6 +107,15 @@ public class CourseController {
             }
 
             String jobId = UUID.randomUUID().toString();
+
+            // Create initial job status
+            jobStatusRepository.save(JobStatus.builder()
+                    .jobId(jobId)
+                    .status("IN_PROGRESS")
+                    .createdAt(LocalDateTime.now())
+                    .updatedAt(LocalDateTime.now())
+                    .build());
+
             CourseRequest courseRequest = CourseRequest.builder()
                     .message(topic)
                     .jobId(jobId)
@@ -117,6 +132,49 @@ public class CourseController {
             System.err.println("Generation Error: " + e.getMessage());
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "Failed to start course generation: " + e.getMessage()));
+        }
+    }
+
+    @GetMapping("/status/{jobId}")
+    public ResponseEntity<?> getJobStatus(@RequestHeader("Authorization") String authHeader, @PathVariable String jobId) {
+        try {
+            String sub = googleAuthService.verifyToken(authHeader.substring(7)).getSubject();
+            Optional<JobStatus> statusOpt = jobStatusRepository.findById(jobId);
+
+            if (statusOpt.isPresent()) {
+                JobStatus status = statusOpt.get();
+                Map<String, Object> response = new HashMap<>();
+                response.put("jobId", status.getJobId());
+                response.put("status", status.getStatus());
+
+                if ("COMPLETED".equals(status.getStatus()) && status.getCourseId() != null) {
+                    // Sync to recent courses when job completes
+                    addToRecent(sub, status.getCourseId());
+                    
+                    Optional<Course> courseOpt = courseRepository.findById(status.getCourseId());
+                    if (courseOpt.isPresent()) {
+                        Course course = courseOpt.get();
+                        List<Module> fullModules = (List<Module>) moduleRepository.findAllById(course.getModules());
+                        response.put("course", Map.of(
+                                "id", course.getId(),
+                                "title", course.getTitle(),
+                                "description", course.getDescription(),
+                                "modules", fullModules.stream().map(m -> Map.of(
+                                        "id", m.getId(),
+                                        "title", m.getTitle()
+                                )).collect(Collectors.toList())
+                        ));
+                    }
+                } else if ("FAILED".equals(status.getStatus())) {
+                    response.put("error", status.getError());
+                }
+
+                return ResponseEntity.ok(response);
+            }
+
+            return ResponseEntity.notFound().build();
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
     }
 
