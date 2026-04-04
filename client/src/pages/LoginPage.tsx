@@ -33,7 +33,7 @@ export const LoginPage = () => {
           email: decoded.email,
           picture: decoded.picture,
         };
-        login(userData);
+        login(userData, idToken);
         navigate('/');
       } else {
         console.error('Backend authentication failed');
