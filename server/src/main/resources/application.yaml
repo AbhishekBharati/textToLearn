@@ -22,4 +22,3 @@ rabbitmq:
   exchange: texttolearn.exchange
   queue: texttolearn.queue
   routing-key: "topic.#"
-
