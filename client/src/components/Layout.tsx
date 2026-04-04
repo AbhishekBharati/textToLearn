@@ -27,8 +27,23 @@ export const Layout = () => {
   const navigate = useNavigate();
   const [recentCourses, setRecentCourses] = useState<{id: string, title: string}[]>([]);
 
-  const fetchRecent = async () => {
+  const fetchRecent = async (event?: any) => {
     if (!isAuthenticated || !token) return;
+    
+    // Optimistically add the new topic if event detail is provided
+    if (event && event.detail) {
+      const topicTitle = event.detail;
+      setRecentCourses(prev => {
+        // Prevent duplicate titles
+        if (prev.some(c => c.title === topicTitle)) return prev;
+        
+        // Add new topic at the beginning with a temporary ID
+        const newCourse = { id: `temp-${Date.now()}`, title: topicTitle };
+        return [newCourse, ...prev].slice(0, 10);
+      });
+      return; // Skip server fetch for the immediate event if we're optimistic
+    }
+
     try {
       const response = await fetch('http://localhost:8080/api/courses/recent', {
         headers: { 'Authorization': `Bearer ${token}` }
@@ -44,8 +59,8 @@ export const Layout = () => {
 
   useEffect(() => {
     fetchRecent();
-    window.addEventListener('courseAccessed', fetchRecent);
-    return () => window.removeEventListener('courseAccessed', fetchRecent);
+    window.addEventListener('courseAccessed', fetchRecent as EventListener);
+    return () => window.removeEventListener('courseAccessed', fetchRecent as EventListener);
   }, [isAuthenticated, token]);
 
   const links = [
