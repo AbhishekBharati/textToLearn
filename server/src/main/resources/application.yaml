@@ -4,5 +4,18 @@ spring:
   data:
     mongodb:
       uri: ${MONGODB_URI:mongodb://localhost:27017/texttolearn}
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+
 google:
   client-id: ${GOOGLE_CLIENT_ID:778059473740-hqf08s7g1s8qqoia0mfk6pm55donnpkj.apps.googleusercontent.com}
+
+rabbitmq:
+  exchange: texttolearn.exchange
+  queue: texttolearn.queue
+  routing-key: "topic.#"
+
+
