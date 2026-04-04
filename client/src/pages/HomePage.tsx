@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { IconSend, IconLayoutGrid } from '@tabler/icons-react';
+import { IconSend, IconLayoutGrid, IconSparkles } from '@tabler/icons-react';
 import { useAuth } from '../context/AuthContext.tsx';
 import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
@@ -11,6 +11,44 @@ export const HomePage = () => {
   const [existingCourse, setExistingCourse] = useState<{id: string, title: string, description: string, modules: {id: string, title: string}[]} | null>(null);
   const { isAuthenticated, token, user } = useAuth();
   const location = useLocation();
+
+  // Polling for course status
+  useEffect(() => {
+    let intervalId: number;
+
+    if (jobId && isAuthenticated && token) {
+      intervalId = window.setInterval(async () => {
+        try {
+          const response = await fetch(`http://localhost:8080/api/courses/status/${jobId}`, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            if (data.status === 'COMPLETED' && data.course) {
+              setExistingCourse(data.course);
+              setJobId(null);
+              clearInterval(intervalId);
+              // Dispatch event to refresh sidebar and ensure it stays there
+              window.dispatchEvent(new CustomEvent('courseAccessed', { detail: data.course.title }));
+            } else if (data.status === 'FAILED') {
+              alert(`Course generation failed: ${data.error || 'Unknown error'}`);
+              setJobId(null);
+              clearInterval(intervalId);
+            }
+          }
+        } catch (error) {
+          console.error('Error polling status:', error);
+        }
+      }, 3000); // Poll every 3 seconds
+    }
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [jobId, isAuthenticated, token]);
 
   const handleSubmit = async (e?: React.FormEvent, manualTopic?: string) => {
     if (e) e.preventDefault();
@@ -36,13 +74,13 @@ export const HomePage = () => {
       if (response.status === 202) {
         setExistingCourse(data);
         setInputValue("");
-        // Dispatch event to refresh sidebar
-        window.dispatchEvent(new Event('courseAccessed'));
+        // Dispatch event to refresh sidebar with existing course title
+        window.dispatchEvent(new CustomEvent('courseAccessed', { detail: data.title }));
       } else if (response.status === 200) {
         setJobId(data.jobId);
         setInputValue("");
-        // Dispatch event to refresh sidebar
-        window.dispatchEvent(new Event('courseAccessed'));
+        // Dispatch event to refresh sidebar with new topic title
+        window.dispatchEvent(new CustomEvent('courseAccessed', { detail: topic }));
       } else {
         alert(`Error: ${data.error}`);
       }
@@ -64,13 +102,43 @@ export const HomePage = () => {
     }
   }, [location.state]);
 
+  const LoadingShimmer = () => (
+    <div className="w-full max-w-4xl space-y-8 animate-pulse">
+      <div className="text-center space-y-4">
+        <div className="h-12 w-3/4 bg-neutral-200 dark:bg-neutral-800 rounded-2xl mx-auto" />
+        <div className="h-6 w-1/2 bg-neutral-200 dark:bg-neutral-800 rounded-xl mx-auto" />
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-12">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="h-32 bg-neutral-200 dark:bg-neutral-800 rounded-[2.5rem] border border-neutral-300 dark:border-neutral-700" />
+        ))}
+      </div>
+      <div className="flex flex-col items-center gap-2 pt-8">
+        <IconSparkles className="text-blue-500 animate-bounce" size={32} />
+        <p className="text-neutral-500 dark:text-neutral-400 font-medium text-lg animate-pulse">
+          Crafting your personalized learning path...
+        </p>
+      </div>
+    </div>
+  );
+
   return (
     <div className="flex flex-col items-center justify-between h-full bg-white dark:bg-neutral-900 transition-colors duration-200 overflow-hidden">
       {/* Scrollable Content Area */}
       <div className="flex-1 w-full overflow-y-auto custom-scrollbar">
         <div className="max-w-4xl mx-auto px-6 py-12 flex flex-col items-center justify-center min-h-full">
           <AnimatePresence mode="wait">
-            {!existingCourse ? (
+            {jobId ? (
+              <motion.div
+                key="loading"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="w-full flex justify-center"
+              >
+                <LoadingShimmer />
+              </motion.div>
+            ) : !existingCourse ? (
               <motion.div 
                 key="welcome"
                 initial={{ opacity: 0, y: 20 }}
@@ -84,17 +152,6 @@ export const HomePage = () => {
                 <p className="text-2xl md:text-3xl font-medium text-neutral-500 dark:text-neutral-400 tracking-tight">
                   What do you wanna Learn Today?
                 </p>
-                
-                {jobId && (
-                  <motion.div 
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="mt-12 p-6 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 rounded-[2rem] border border-blue-100 dark:border-blue-800 shadow-xl inline-block"
-                  >
-                    <p className="font-bold text-lg mb-1">Course generation started!</p>
-                    <p className="text-sm opacity-80">Track your progress with Job ID: <span className="font-mono">{jobId}</span></p>
-                  </motion.div>
-                )}
               </motion.div>
             ) : (
               <motion.div 
@@ -148,20 +205,20 @@ export const HomePage = () => {
               type="text"
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
-              disabled={loading}
-              placeholder={loading ? "Analyzing library..." : "Explore another topic..."}
+              disabled={loading || !!jobId}
+              placeholder={loading || jobId ? "Analyzing library..." : "Explore another topic..."}
               className="flex-1 bg-transparent border-none outline-none py-4 text-neutral-800 dark:text-neutral-200 placeholder-neutral-500 text-lg"
             />
             <button 
               type="submit"
-              disabled={!inputValue.trim() || loading || !isAuthenticated}
+              disabled={!inputValue.trim() || loading || !!jobId || !isAuthenticated}
               className={`p-3 rounded-full transition-all duration-300 mr-2 ${
-                inputValue.trim() && !loading && isAuthenticated
+                inputValue.trim() && !loading && !jobId && isAuthenticated
                 ? "bg-blue-600 text-white shadow-xl hover:bg-blue-700 hover:scale-105 active:scale-95" 
                 : "text-neutral-400 cursor-not-allowed"
               }`}
             >
-              {loading ? (
+              {loading || jobId ? (
                 <div className="h-6 w-6 border-3 border-white/30 border-t-white rounded-full animate-spin" />
               ) : (
                 <IconSend size={24} />
