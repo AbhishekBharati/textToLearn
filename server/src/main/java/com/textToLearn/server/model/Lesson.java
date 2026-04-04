@@ -16,23 +16,26 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-@Document(collection = "courses")
+@Document(collection = "lessons")
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class Course {
+public class Lesson {
     @Id
     private String id;
     private String title;
-    private String description;
-    private String creator;
     
     @Builder.Default
-    private List<String> modules = new ArrayList<>();
+    private List<Object> content = new ArrayList<>();
     
     @Builder.Default
-    private List<String> tags = new ArrayList<>();
+    private boolean isEnriched = false;
+    
+    @DocumentReference(lazy = true)
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private Module module;
 
     @CreatedDate
     private LocalDateTime createdAt;

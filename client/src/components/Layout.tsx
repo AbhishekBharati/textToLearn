@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Outlet, useNavigate } from 'react-router-dom';
+import { Outlet, useNavigate, Link, useLocation } from 'react-router-dom';
 import { SidebarBody, SidebarLink, SidebarProvider, useSidebar } from './Sidebar.tsx';
 import { DownloadComponent } from './DownloadComponent.tsx';
 import { SaveCourse } from './SaveCourse.tsx';
@@ -8,53 +8,65 @@ import { motion } from 'motion/react';
 import { 
   Navbar, 
   NavBody, 
-  NavbarLogo, 
   MobileNav,
-  MobileNavHeader
+  MobileNavHeader,
+  NavbarLogo
 } from './ui/Navbar.tsx';
 import { 
   IconMessageCircle,
   IconBookmark,
   IconMenu2,
-  IconLogout
+  IconLogout,
+  IconHistory
 } from "@tabler/icons-react";
 import { cn } from "../utils/utils.ts";
 import { useAuth } from '../context/AuthContext.tsx';
 
 export const Layout = () => {
-  const { isAuthenticated, user, logout } = useAuth();
+  const { isAuthenticated, user, token, logout } = useAuth();
   const navigate = useNavigate();
+  const [recentCourses, setRecentCourses] = useState<{id: string, title: string}[]>([]);
 
-  const handleSavedCourseClick = (e: React.MouseEvent) => {
-    if (!isAuthenticated) {
-      e.preventDefault();
-      navigate('/login');
+  const fetchRecent = async () => {
+    if (!isAuthenticated || !token) return;
+    try {
+      const response = await fetch('http://localhost:8080/api/courses/recent', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setRecentCourses(data);
+      }
+    } catch (error) {
+      console.error('Error fetching recent courses:', error);
     }
   };
+
+  useEffect(() => {
+    fetchRecent();
+    window.addEventListener('courseAccessed', fetchRecent);
+    return () => window.removeEventListener('courseAccessed', fetchRecent);
+  }, [isAuthenticated, token]);
 
   const links = [
     {
       label: "New chat",
       href: "/",
       icon: (
-        <IconMessageCircle className="text-neutral-700 dark:text-neutral-200 h-5 w-5 flex-shrink-0" />
+        <IconMessageCircle size={20} className="text-neutral-700 dark:text-neutral-200" />
       ),
     },
     {
       label: "Saved Course",
-      href: "/saved-courses", // Changed from # to a dummy path for now
-      onClick: handleSavedCourseClick,
+      href: "/saved-courses",
       icon: (
-        <IconBookmark className="text-neutral-700 dark:text-neutral-200 h-5 w-5 flex-shrink-0" />
+        <IconBookmark size={20} className="text-neutral-700 dark:text-neutral-200" />
       ),
     },
   ];
 
-  const navContent : string = "What do you wanna Learn Today?"
-
   const [open, setOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(() => {
-    // Initialize from localStorage or system preference
     const savedTheme = localStorage.getItem('theme');
     if (savedTheme) return savedTheme === 'dark';
     return window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -73,19 +85,60 @@ export const Layout = () => {
   return (
     <SidebarProvider open={open} setOpen={setOpen} animate={true}>
       <div className={cn(
-        "rounded-md flex flex-col md:flex-row bg-neutral-400 dark:bg-neutral-800 w-full flex-1 max-w-7xl mx-auto border border-neutral-200 dark:border-neutral-700 overflow-hidden",
+        "flex flex-col md:flex-row bg-white dark:bg-neutral-900 w-full flex-1 max-w-7xl mx-auto border-x border-neutral-200 dark:border-neutral-800 overflow-hidden",
         "h-screen" 
       )}>
-        <SidebarBody className="justify-between gap-10">
-          <div className="flex flex-col flex-1 overflow-y-auto overflow-x-hidden">
-            {open ? <Logo /> : <LogoIcon />}
-            <div className="mt-8 flex flex-col gap-2">
+        <SidebarBody className="justify-between gap-10 border-r border-neutral-200 dark:border-neutral-800 !p-0">
+          <div className="flex flex-col flex-1 overflow-y-auto custom-scrollbar">
+            {/* Standardized Header */}
+            <div className="h-16 flex items-center px-4 mb-4">
+               <div className="w-6 flex justify-center items-center">
+                 <IconMenu2 
+                   className="text-neutral-800 dark:text-neutral-200 cursor-pointer h-5 w-5" 
+                   onClick={() => setOpen(!open)} 
+                 />
+               </div>
+            </div>
+
+            <div className="flex flex-col gap-2 px-2">
               {links.map((link, idx) => (
-                <SidebarLink key={idx} link={link as any} onClick={link.onClick} />
+                <SidebarLink key={idx} link={link as any} />
               ))}
             </div>
+
+            {/* Recent Section */}
+            <div className="mt-10 px-2">
+              <div className="flex items-center gap-2 text-neutral-400 dark:text-neutral-500 mb-4 px-2">
+                <div className="w-6 flex justify-center items-center">
+                  <IconHistory size={18} />
+                </div>
+                {open && <span className="text-[10px] font-bold uppercase tracking-[0.2em] whitespace-nowrap">Recent</span>}
+              </div>
+              
+              <div className="flex flex-col gap-1">
+                {recentCourses.map((course) => (
+                  <button
+                    key={course.id}
+                    onClick={() => {
+                      navigate('/', { state: { searchTopic: course.title } });
+                    }}
+                    className="flex items-center gap-2 p-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-left transition-colors group w-full"
+                  >
+                    <div className="w-6 flex justify-center items-center flex-shrink-0">
+                      <div className="h-1.5 w-1.5 rounded-full bg-blue-500/40 group-hover:bg-blue-500 transition-colors" />
+                    </div>
+                    {open && (
+                      <span className="text-sm text-neutral-600 dark:text-neutral-400 truncate flex-1 font-medium">
+                        {course.title}
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
-          <div className="flex flex-col gap-2 border-t border-neutral-200 dark:border-neutral-700 pt-4">
+
+          <div className="flex flex-col gap-2 border-t border-neutral-200 dark:border-neutral-800 p-2 pb-4">
             {isAuthenticated ? (
               <>
                 <SidebarLink
@@ -94,8 +147,8 @@ export const Layout = () => {
                     href: "#",
                     icon: (
                       <img
-                        src={user?.picture || "https://assets.aceternity.com/manu.png"}
-                        className="h-6 w-6 flex-shrink-0 rounded-full object-cover"
+                        src={user?.picture || "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"}
+                        className="h-6 w-6 flex-shrink-0 rounded-full object-cover border border-neutral-200 dark:border-neutral-700"
                         width={24}
                         height={24}
                         alt="Avatar"
@@ -105,20 +158,12 @@ export const Layout = () => {
                 />
                 <button 
                   onClick={logout}
-                  className="flex items-center justify-start gap-2 group/sidebar py-2 px-2 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20 text-neutral-700 dark:text-neutral-200 hover:text-red-600 dark:hover:text-red-400 transition duration-150 w-full text-left"
+                  className="flex items-center justify-start gap-2 group/sidebar py-2 px-2 rounded-md hover:bg-red-50 dark:hover:bg-red-900/10 text-neutral-700 dark:text-neutral-200 hover:text-red-600 dark:hover:text-red-400 transition duration-150 w-full text-left"
                 >
-                  <div className="flex-shrink-0 w-6 flex justify-center items-center">
-                    <IconLogout className="h-5 w-5 flex-shrink-0" />
+                  <div className="w-6 flex justify-center items-center flex-shrink-0">
+                    <IconLogout size={18} />
                   </div>
-                  <motion.span
-                    animate={{
-                      width: open ? "auto" : 0,
-                      opacity: open ? 1 : 0,
-                    }}
-                    className="text-sm whitespace-pre overflow-hidden"
-                  >
-                    Logout
-                  </motion.span>
+                  {open && <span className="text-sm font-bold">Logout</span>}
                 </button>
               </>
             ) : (
@@ -127,8 +172,8 @@ export const Layout = () => {
                   label: "Login",
                   href: "/login",
                   icon: (
-                    <div className="h-7 w-7 flex items-center justify-center bg-neutral-200 dark:bg-neutral-700 rounded-full">
-                       <IconLogout className="h-4 w-4 rotate-180" />
+                    <div className="h-6 w-6 flex items-center justify-center bg-neutral-200 dark:bg-neutral-700 rounded-full">
+                       <IconLogout size={14} className="rotate-180" />
                     </div>
                   ),
                 }}
@@ -136,16 +181,16 @@ export const Layout = () => {
             )}
           </div>
         </SidebarBody>
-        <div className="flex flex-col flex-1 overflow-hidden">
-          <Navbar className="top-0 sticky">
-            <NavBody>
+
+        <div className="flex flex-col flex-1 overflow-hidden bg-neutral-50 dark:bg-neutral-950">
+          <Navbar className="top-0 sticky bg-white/80 dark:bg-neutral-900/80 backdrop-blur-md border-b border-neutral-200 dark:border-neutral-800 h-16">
+            <NavBody className="h-full border-none shadow-none bg-transparent">
               <div className="flex items-center gap-2">
+                 <SidebarToggle />
                  <NavbarLogo />
               </div>
-              <div className="flex-1 text-center font-semibold text-neutral-800 dark:text-neutral-200 truncate px-4">
-                { navContent }
-              </div>
-              <div className="flex items-center justify-end gap-3">
+              <div className="flex-1" />
+              <div className="flex items-center justify-end gap-3 px-4">
                 <Switch checked={isDarkMode} onChange={setIsDarkMode} />
                 <DownloadComponent />
                 <SaveCourse />
@@ -165,7 +210,7 @@ export const Layout = () => {
               </MobileNavHeader>
             </MobileNav>
           </Navbar>
-          <main className="flex-1 overflow-y-auto">
+          <main className="flex-1 overflow-hidden">
             <Outlet />
           </main>
         </div>
@@ -178,37 +223,8 @@ const SidebarToggle = () => {
   const { open, setOpen } = useSidebar();
   return (
     <IconMenu2 
-      className="md:hidden text-neutral-800 dark:text-neutral-200 cursor-pointer" 
+      className="md:hidden text-neutral-800 dark:text-neutral-200 cursor-pointer h-6 w-6" 
       onClick={() => setOpen(!open)} 
     />
-  );
-};
-
-const Logo = () => {
-  return (
-    <div className="mt-2 dark:text-white flex justify-between items-center w-full px-2">
-      <div className="flex-shrink-0 w-6 flex justify-center items-center">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-6">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
-        </svg>
-      </div>
-      <div className="pr-9 md:pr-0">
-       <svg  xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-6">
-         <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
-       </svg>
-      </div>
-    </div> 
-  );
-};
-
-const LogoIcon = () => {
-  return (
-    <div className="mt-2 dark:text-white flex-shrink-0 w-full px-2 flex justify-start items-center">
-      <div className="w-6 flex justify-center items-center">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-6">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
-        </svg> 
-      </div>
-    </div>
   );
 };

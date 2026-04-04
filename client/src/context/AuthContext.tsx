@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode } from 'react';
 
 interface User {
   name: string;
@@ -17,19 +17,19 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-
-  useEffect(() => {
+  // Initialize state directly from localStorage to prevent "flash" of unauthenticated state
+  const [user, setUser] = useState<User | null>(() => {
     const savedUser = localStorage.getItem('user');
-    const savedToken = localStorage.getItem('token');
-    if (savedUser && savedToken) {
-      setUser(JSON.parse(savedUser));
-      setToken(savedToken);
-      setIsAuthenticated(true);
-    }
-  }, []);
+    return savedUser ? JSON.parse(savedUser) : null;
+  });
+  
+  const [token, setToken] = useState<string | null>(() => {
+    return localStorage.getItem('token');
+  });
+
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    return !!localStorage.getItem('token') && !!localStorage.getItem('user');
+  });
 
   const login = (userData: User, token: string) => {
     setUser(userData);

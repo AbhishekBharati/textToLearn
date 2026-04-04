@@ -32,9 +32,7 @@ public class Module {
     private Course course;
     
     @Builder.Default
-    @ToString.Exclude
-    @EqualsAndHashCode.Exclude
-    private List<Object> lessons = new ArrayList<>(); // Use Object if Lesson model isn't needed in server yet
+    private List<String> lessons = new ArrayList<>();
 
     @CreatedDate
     private LocalDateTime createdAt;

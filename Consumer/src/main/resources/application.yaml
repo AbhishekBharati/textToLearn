@@ -6,9 +6,7 @@ spring:
     name: Consumer
   data:
     mongodb:
-      # Removed the placeholder to be 100% sure it uses this URI
       uri: mongodb://localhost:27017/texttolearn
-      # Explicitly setting the database name as a separate property
       database: texttolearn
   rabbitmq:
     host: localhost
