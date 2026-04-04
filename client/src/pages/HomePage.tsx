@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { IconSend } from '@tabler/icons-react';
+import { useAuth } from '../context/AuthContext.tsx';
 
 export const HomePage = () => {
   const [inputValue, setInputValue] = useState("");
-  const User = "Nodix";
+  const { isAuthenticated, user, logout } = useAuth();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -18,7 +19,7 @@ export const HomePage = () => {
       {/* Welcome Section */}
       <div className="flex-1 flex flex-col items-center justify-center px-4 w-full max-w-3xl">
         <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-blue-600 via-purple-500 to-pink-500 bg-clip-text text-transparent text-center">
-          Hello {User},
+          Hello {isAuthenticated ? user?.name : "User"},
         </h1>
         <p className="text-2xl md:text-3xl font-medium text-neutral-500 dark:text-neutral-400 text-center">
           What do you wanna Learn Today?
