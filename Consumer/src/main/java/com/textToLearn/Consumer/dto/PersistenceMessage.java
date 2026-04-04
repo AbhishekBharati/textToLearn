@@ -23,4 +23,7 @@ public class PersistenceMessage implements Serializable {
     // For LESSON_CONTENT, we might need extra context
     private String courseTitle;
     private String moduleTitle;
+    
+    private String jobId;
+    private String creator;
 }

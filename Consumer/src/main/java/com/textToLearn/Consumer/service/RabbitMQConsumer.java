@@ -18,8 +18,11 @@ public class RabbitMQConsumer {
     @RabbitListener(queues = "${rabbitmq.queue}", containerFactory = "jsonListenerContainerFactory")
     public void consume(CourseRequest request) {
         String topic = request.getMessage();
-        System.out.println("Generating course for topic: " + topic);
-        FullCourseResponse response = courseGenerationService.generateFullCourse(topic);
+        String jobId = request.getJobId();
+        System.out.println("Generating course for topic: " + topic + " with jobId: " + jobId);
+        
+        // In a real scenario, the creator would also come from the request
+        FullCourseResponse response = courseGenerationService.generateFullCourse(topic, "AUTHENTICATED_USER", jobId);
         System.out.println("Generated Course Content:\n" + response);
     }
 }

@@ -3,5 +3,5 @@ package com.textToLearn.Consumer.service;
 import com.textToLearn.Consumer.dto.FullCourseResponse;
 
 public interface CourseGenerationService {
-    public FullCourseResponse generateFullCourse(String topic);
+    FullCourseResponse generateFullCourse(String topic, String creator, String jobId);
 }
