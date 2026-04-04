@@ -29,7 +29,7 @@ public class OpenAICourseGeneration implements CourseGenerationService {
         this.rabbitTemplate = rabbitTemplate;
     }
 
-    public FullCourseResponse generateFullCourse(String topic){
+    public FullCourseResponse generateFullCourse(String topic, String creator, String jobId){
         CourseResponse courseOutline = generateOutline(topic);
 
         // Publish Course Outline for Persistence
@@ -37,6 +37,8 @@ public class OpenAICourseGeneration implements CourseGenerationService {
             PersistenceMessage.builder()
                 .type(PersistenceMessage.Type.COURSE_OUTLINE)
                 .data(courseOutline)
+                .creator(creator)
+                .jobId(jobId)
                 .build());
 
         List<ModuleContent> fullModules = courseOutline.modules().parallelStream().map( module -> {
@@ -51,6 +53,7 @@ public class OpenAICourseGeneration implements CourseGenerationService {
                         .data(lessonContent)
                         .courseTitle(courseOutline.title())
                         .moduleTitle(module.title())
+                        .jobId(jobId)
                         .build());
                         
                 return lessonContent;

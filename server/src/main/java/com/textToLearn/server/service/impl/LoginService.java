@@ -16,13 +16,13 @@ public class LoginService implements AuthService {
     private UserRepository userRepository;
 
     @Override
-    public Boolean login(GoogleIdToken.Payload payload) {
+    public User login(GoogleIdToken.Payload payload) {
         String sub = payload.getSubject();
         Optional<User> userOptional = userRepository.findById(sub);
 
         if (userOptional.isPresent()) {
             System.out.println("User exists in DB: " + userOptional.get().getEmail());
-            return true;
+            return userOptional.get();
         } else {
             // User doesn't exist, create new user
             User newUser = User.builder()
@@ -31,9 +31,9 @@ public class LoginService implements AuthService {
                     .name((String) payload.get("name"))
                     .build();
             
-            userRepository.save(newUser);
-            System.out.println("New user created in DB: " + newUser.getEmail());
-            return true;
+            User savedUser = userRepository.save(newUser);
+            System.out.println("New user created in DB: " + savedUser.getEmail());
+            return savedUser;
         }
     }
 }

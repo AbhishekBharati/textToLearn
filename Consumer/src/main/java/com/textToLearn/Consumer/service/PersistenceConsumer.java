@@ -39,7 +39,7 @@ public class PersistenceConsumer {
         try {
             if (message.getType() == PersistenceMessage.Type.COURSE_OUTLINE) {
                 CourseResponse outline = objectMapper.convertValue(message.getData(), CourseResponse.class);
-                saveCourseOutline(outline);
+                saveCourseOutline(outline, message.getCreator());
             } else if (message.getType() == PersistenceMessage.Type.LESSON_CONTENT) {
                 LessonContent lessonContent = objectMapper.convertValue(message.getData(), LessonContent.class);
                 saveLessonContent(lessonContent, message.getCourseTitle(), message.getModuleTitle());
@@ -50,13 +50,13 @@ public class PersistenceConsumer {
         }
     }
 
-    private void saveCourseOutline(CourseResponse outline) {
+    private void saveCourseOutline(CourseResponse outline, String creator) {
         Course course = courseRepository.findByTitle(outline.title())
                 .orElse(Course.builder()
                         .title(outline.title())
                         .description(outline.description())
                         .tags(outline.tags())
-                        .creator("AI_GENERATOR") // Placeholder
+                        .creator(creator)
                         .modules(new ArrayList<>())
                         .build());
         
