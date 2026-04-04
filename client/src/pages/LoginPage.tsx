@@ -13,7 +13,6 @@ export const LoginPage = () => {
     const idToken = credentialResponse.credential;
 
     try {
-      // Send the idToken to the backend
       const response = await fetch('http://localhost:8080/api/auth/login', {
         method: 'POST',
         headers: {
@@ -23,78 +22,67 @@ export const LoginPage = () => {
       });
 
       if (response.ok) {
-        const data = await response.json();
-        console.log('Backend response:', data);
-        
-        // Also decode and update local auth context
         const decoded: any = jwtDecode(idToken);
         const userData = {
           name: decoded.name,
           email: decoded.email,
           picture: decoded.picture,
         };
-        login(userData);
+        login(userData, idToken);
         navigate('/');
-      } else {
-        console.error('Backend authentication failed');
       }
     } catch (error) {
-      console.error('Error sending token to backend', error);
+      console.error('Error during login', error);
     }
   };
 
-  const handleError = () => {
-    console.log('Login Failed');
-  };
-
   return (
-    <div className="relative h-full w-full flex items-center justify-center overflow-hidden bg-neutral-100 dark:bg-neutral-950">
+    <div className="fixed inset-0 flex items-center justify-center bg-neutral-100 dark:bg-neutral-950 overflow-hidden">
       {/* Background Decorative Elements */}
-      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-blue-500/20 blur-[120px]" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-purple-500/20 blur-[120px]" />
+      <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-blue-600/10 blur-[120px] animate-pulse" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-purple-600/10 blur-[120px] animate-pulse" />
 
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="z-10 w-full max-w-md px-4"
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.4 }}
+        className="relative z-10 w-full max-w-md px-6"
       >
-        <div className="relative overflow-hidden rounded-3xl border border-white/20 dark:border-neutral-800/50 bg-white/40 dark:bg-neutral-900/40 backdrop-blur-xl p-8 shadow-2xl">
-          <div className="flex flex-col items-center gap-6">
-            <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
-               <span className="text-white text-2xl font-bold">T</span>
+        <div className="overflow-hidden rounded-[2.5rem] border border-white/20 dark:border-neutral-800 bg-white/70 dark:bg-neutral-900/80 backdrop-blur-2xl p-10 md:p-12 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.2)]">
+          <div className="flex flex-col items-center gap-8">
+            <div className="h-20 w-20 rounded-3xl bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center shadow-xl transform rotate-12">
+               <span className="text-white text-4xl font-black -rotate-12">T</span>
             </div>
             
-            <div className="text-center space-y-2">
-              <h1 className="text-3xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100">
+            <div className="text-center space-y-3">
+              <h1 className="text-4xl font-extrabold tracking-tight text-neutral-900 dark:text-neutral-100">
                 Welcome Back
               </h1>
-              <p className="text-neutral-600 dark:text-neutral-400">
-                Continue your learning journey with TextToLearn
+              <p className="text-neutral-500 dark:text-neutral-400 font-medium text-lg leading-relaxed">
+                Continue your learning journey with <span className="text-blue-600 dark:text-blue-400 font-bold">TechEaze</span>
               </p>
             </div>
 
-            <div className="w-full flex justify-center scale-110">
+            <div className="w-full flex justify-center py-4">
               <GoogleLogin
                 onSuccess={handleSuccess}
-                onError={handleError}
+                onError={() => console.log('Login Failed')}
                 theme="filled_black"
                 shape="pill"
                 size="large"
-                text="continue_with"
-                width="100%"
+                width="320"
               />
             </div>
 
-            <div className="mt-4 text-xs text-center text-neutral-500 dark:text-neutral-500">
-              By continuing, you agree to our Terms of Service and Privacy Policy.
+            <div className="mt-4 text-[11px] text-center text-neutral-400 dark:text-neutral-500 font-medium leading-relaxed max-w-[240px]">
+              By continuing, you agree to our <span className="underline cursor-pointer">Terms of Service</span> and <span className="underline cursor-pointer">Privacy Policy</span>.
             </div>
           </div>
         </div>
       </motion.div>
       
-      {/* Abstract Background Blur "Behind" everything */}
-      <div className="absolute inset-0 z-0 backdrop-blur-[2px]" />
+      {/* Decorative Blur Mask */}
+      <div className="absolute inset-0 z-0 backdrop-blur-[1px] pointer-events-none" />
     </div>
   );
 };
