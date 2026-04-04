@@ -14,7 +14,8 @@ import java.io.Serializable;
 public class PersistenceMessage implements Serializable {
     public enum Type {
         COURSE_OUTLINE,
-        LESSON_CONTENT
+        LESSON_CONTENT,
+        JOB_COMPLETED
     }
 
     private Type type;

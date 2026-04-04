@@ -61,6 +61,15 @@ public class OpenAICourseGeneration implements CourseGenerationService {
 
             return new ModuleContent(module.title(), detailedLessons);
         }).collect(Collectors.toList());
+
+        // Publish Job Completion
+        rabbitTemplate.convertAndSend(exchange, persistenceRoutingKey,
+                PersistenceMessage.builder()
+                        .type(PersistenceMessage.Type.JOB_COMPLETED)
+                        .jobId(jobId)
+                        .courseTitle(courseOutline.title())
+                        .build());
+
         return new FullCourseResponse(
                 courseOutline.title(),
                 courseOutline.description(),
