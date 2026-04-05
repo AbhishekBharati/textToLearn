@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { jwtDecode } from 'jwt-decode';
 
 interface User {
   name: string;
@@ -12,32 +13,47 @@ interface AuthContextType {
   token: string | null;
   login: (userData: User, token: string) => void;
   logout: () => void;
+  checkTokenExpiration: () => boolean;
+  apiFetch: (url: string, options?: RequestInit) => Promise<Response>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  // Initialize state directly from localStorage to prevent "flash" of unauthenticated state
+  const isTokenExpired = (token: string | null) => {
+    if (!token) return true;
+    try {
+      const decoded: any = jwtDecode(token);
+      const currentTime = Date.now() / 1000;
+      return decoded.exp < currentTime;
+    } catch (error) {
+      return true;
+    }
+  };
+
   const [user, setUser] = useState<User | null>(() => {
+    const savedToken = localStorage.getItem('token');
+    if (isTokenExpired(savedToken)) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      return null;
+    }
     const savedUser = localStorage.getItem('user');
     return savedUser ? JSON.parse(savedUser) : null;
   });
   
   const [token, setToken] = useState<string | null>(() => {
-    return localStorage.getItem('token');
+    const savedToken = localStorage.getItem('token');
+    if (isTokenExpired(savedToken)) {
+      return null;
+    }
+    return savedToken;
   });
 
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-    return !!localStorage.getItem('token') && !!localStorage.getItem('user');
+    const savedToken = localStorage.getItem('token');
+    return !isTokenExpired(savedToken) && !!localStorage.getItem('user');
   });
-
-  const login = (userData: User, token: string) => {
-    setUser(userData);
-    setToken(token);
-    setIsAuthenticated(true);
-    localStorage.setItem('user', JSON.stringify(userData));
-    localStorage.setItem('token', token);
-  };
 
   const logout = () => {
     setUser(null);
@@ -47,8 +63,48 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     localStorage.removeItem('token');
   };
 
+  const checkTokenExpiration = () => {
+    if (isTokenExpired(token)) {
+      logout();
+      return true;
+    }
+    return false;
+  };
+
+  const apiFetch = async (url: string, options: RequestInit = {}) => {
+    const headers = new Headers(options.headers);
+    if (token) {
+      headers.set('Authorization', `Bearer ${token}`);
+    }
+
+    const response = await fetch(url, { ...options, headers });
+
+    if (response.status === 401) {
+      logout();
+      throw new Error('Session expired');
+    }
+
+    return response;
+  };
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      checkTokenExpiration();
+    }, 60000); // Check every minute
+
+    return () => clearInterval(interval);
+  }, [token]);
+
+  const login = (userData: User, token: string) => {
+    setUser(userData);
+    setToken(token);
+    setIsAuthenticated(true);
+    localStorage.setItem('user', JSON.stringify(userData));
+    localStorage.setItem('token', token);
+  };
+
   return (
-    <AuthContext.Provider value={{ isAuthenticated, user, token, login, logout }}>
+    <AuthContext.Provider value={{ isAuthenticated, user, token, login, logout, checkTokenExpiration, apiFetch }}>
       {children}
     </AuthContext.Provider>
   );

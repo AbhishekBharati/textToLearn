@@ -13,16 +13,14 @@ interface Lesson {
 export const ModulePage = () => {
   const { moduleId } = useParams();
   const navigate = useNavigate();
-  const { token } = useAuth();
+  const { apiFetch } = useAuth();
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchLessons = async () => {
       try {
-        const response = await fetch(`http://localhost:8080/api/courses/modules/${moduleId}/lessons`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
+        const response = await apiFetch(`http://localhost:8080/api/courses/modules/${moduleId}/lessons`);
         if (response.ok) {
           const data = await response.json();
           setLessons(data);
@@ -34,8 +32,8 @@ export const ModulePage = () => {
       }
     };
 
-    if (token && moduleId) fetchLessons();
-  }, [moduleId, token]);
+    if (moduleId) fetchLessons();
+  }, [moduleId]);
 
   return (
     <div className="h-full bg-white dark:bg-neutral-900 transition-colors duration-200 overflow-y-auto custom-scrollbar">
