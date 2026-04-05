@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Outlet, useNavigate, Link, useLocation } from 'react-router-dom';
 import { SidebarBody, SidebarLink, SidebarProvider, useSidebar } from './Sidebar.tsx';
-import { DownloadComponent } from './DownloadComponent.tsx';
 import Switch from './ui/Switch.tsx';
 import { motion } from 'motion/react';
 import { 
@@ -198,7 +197,6 @@ export const Layout = () => {
               <div className="flex-1" />
               <div className="flex items-center justify-end gap-3 px-4">
                 <Switch checked={isDarkMode} onChange={setIsDarkMode} />
-                <DownloadComponent />
               </div>
             </NavBody>
             <MobileNav>
@@ -209,7 +207,6 @@ export const Layout = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   <Switch checked={isDarkMode} onChange={setIsDarkMode} /> 
-                  <DownloadComponent />
                 </div>
               </MobileNavHeader>
             </MobileNav>

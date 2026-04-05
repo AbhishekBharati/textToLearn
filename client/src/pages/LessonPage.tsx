@@ -83,6 +83,7 @@ export const LessonPage = () => {
         </button>
 
         <motion.article
+          id="lesson-content"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
         >
