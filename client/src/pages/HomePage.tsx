@@ -9,21 +9,17 @@ export const HomePage = () => {
   const [loading, setLoading] = useState(false);
   const [jobId, setJobId] = useState<string | null>(null);
   const [existingCourse, setExistingCourse] = useState<{id: string, title: string, description: string, modules: {id: string, title: string}[]} | null>(null);
-  const { isAuthenticated, token, user } = useAuth();
+  const { isAuthenticated, token, user, apiFetch } = useAuth();
   const location = useLocation();
 
   // Polling for course status
   useEffect(() => {
     let intervalId: number;
 
-    if (jobId && isAuthenticated && token) {
+    if (jobId && isAuthenticated) {
       intervalId = window.setInterval(async () => {
         try {
-          const response = await fetch(`http://localhost:8080/api/courses/status/${jobId}`, {
-            headers: {
-              'Authorization': `Bearer ${token}`
-            }
-          });
+          const response = await apiFetch(`http://localhost:8080/api/courses/status/${jobId}`);
 
           if (response.ok) {
             const data = await response.json();
@@ -41,6 +37,9 @@ export const HomePage = () => {
           }
         } catch (error) {
           console.error('Error polling status:', error);
+          if (error instanceof Error && error.message === 'Session expired') {
+            clearInterval(intervalId);
+          }
         }
       }, 3000); // Poll every 3 seconds
     }
@@ -48,23 +47,22 @@ export const HomePage = () => {
     return () => {
       if (intervalId) clearInterval(intervalId);
     };
-  }, [jobId, isAuthenticated, token]);
+  }, [jobId, isAuthenticated]);
 
   const handleSubmit = async (e?: React.FormEvent, manualTopic?: string) => {
     if (e) e.preventDefault();
     const topic = manualTopic || inputValue;
-    if (!topic.trim() || !isAuthenticated || !token) return;
+    if (!topic.trim() || !isAuthenticated) return;
 
     setLoading(true);
     setJobId(null);
     setExistingCourse(null);
     
     try {
-      const response = await fetch('http://localhost:8080/api/courses/generate', {
+      const response = await apiFetch('http://localhost:8080/api/courses/generate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({ message: topic }),
       });
@@ -86,7 +84,6 @@ export const HomePage = () => {
       }
     } catch (error) {
       console.error('Error calling generate API:', error);
-      alert('An unexpected error occurred.');
     } finally {
       setLoading(false);
     }

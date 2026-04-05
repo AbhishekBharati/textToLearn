@@ -31,7 +31,7 @@ interface Lesson {
 export const LessonPage = () => {
   const { lessonId } = useParams();
   const navigate = useNavigate();
-  const { token } = useAuth();
+  const { apiFetch } = useAuth();
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedAnswers, setSelectedAnswers] = useState<Record<number, number>>({});
@@ -39,9 +39,7 @@ export const LessonPage = () => {
   useEffect(() => {
     const fetchLesson = async () => {
       try {
-        const response = await fetch(`http://localhost:8080/api/courses/lessons/${lessonId}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
+        const response = await apiFetch(`http://localhost:8080/api/courses/lessons/${lessonId}`);
         if (response.ok) {
           const data = await response.json();
           setLesson(data);
@@ -53,8 +51,8 @@ export const LessonPage = () => {
       }
     };
 
-    if (token && lessonId) fetchLesson();
-  }, [lessonId, token]);
+    if (lessonId) fetchLesson();
+  }, [lessonId]);
 
   const handleAnswerSelect = (blockIdx: number, optionIdx: number) => {
     setSelectedAnswers(prev => ({ ...prev, [blockIdx]: optionIdx }));
