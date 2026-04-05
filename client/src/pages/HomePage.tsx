@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { IconSend, IconLayoutGrid, IconSparkles } from '@tabler/icons-react';
 import { useAuth } from '../context/AuthContext.tsx';
 import { useCourse } from '../context/CourseContext.tsx';
+import { API_BASE_URL } from '../utils/constants.ts';
 import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -29,7 +30,7 @@ export const HomePage = () => {
     if (jobId && isAuthenticated) {
       intervalId = window.setInterval(async () => {
         try {
-          const response = await apiFetch(`http://localhost:8080/api/courses/status/${jobId}`);
+          const response = await apiFetch(`${API_BASE_URL}/api/courses/status/${jobId}`);
 
           if (response.ok) {
             const data = await response.json();
@@ -69,7 +70,7 @@ export const HomePage = () => {
     setExistingCourse(null);
     
     try {
-      const response = await apiFetch('http://localhost:8080/api/courses/generate', {
+      const response = await apiFetch(`${API_BASE_URL}/api/courses/generate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

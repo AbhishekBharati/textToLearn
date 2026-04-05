@@ -18,6 +18,7 @@ import {
 import { cn } from "../utils/utils.ts";
 import { useAuth } from '../context/AuthContext.tsx';
 import { useCourse } from '../context/CourseContext.tsx';
+import { API_BASE_URL } from '../utils/constants.ts';
 
 export const Layout = () => {
   const { isAuthenticated, user, token, logout, apiFetch } = useAuth();
@@ -43,7 +44,7 @@ export const Layout = () => {
     }
 
     try {
-      const response = await apiFetch('http://localhost:8080/api/courses/recent');
+      const response = await apiFetch(`${API_BASE_URL}/api/courses/recent`);
       if (response.ok) {
         const data = await response.json();
         setRecentCourses(data);

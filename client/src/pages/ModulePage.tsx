@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCourse } from '../context/CourseContext';
+import { API_BASE_URL } from '../utils/constants';
 import { motion } from 'motion/react';
 import { IconChevronLeft, IconBook, IconCircleCheck } from '@tabler/icons-react';
 
@@ -23,7 +24,7 @@ export const ModulePage = () => {
   useEffect(() => {
     const fetchLessons = async () => {
       try {
-        const response = await apiFetch(`http://localhost:8080/api/courses/modules/${moduleId}/lessons`);
+        const response = await apiFetch(`${API_BASE_URL}/api/courses/modules/${moduleId}/lessons`);
         if (response.ok) {
           const data = await response.json();
           setLessons(data.lessons);

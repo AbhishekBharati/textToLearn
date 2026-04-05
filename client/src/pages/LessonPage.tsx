@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCourse } from '../context/CourseContext';
+import { API_BASE_URL } from '../utils/constants';
 import { motion } from 'motion/react';
 import { 
   IconChevronLeft, 
@@ -42,7 +43,7 @@ export const LessonPage = () => {
   useEffect(() => {
     const fetchLesson = async () => {
       try {
-        const response = await apiFetch(`http://localhost:8080/api/courses/lessons/${lessonId}`);
+        const response = await apiFetch(`${API_BASE_URL}/api/courses/lessons/${lessonId}`);
         if (response.ok) {
           const data = await response.json();
           const lessonData = data.lesson;
@@ -56,7 +57,7 @@ export const LessonPage = () => {
           lessonData.content.forEach(async (block: ContentBlock, idx: number) => {
             if (block.type === 'video' && block.query && !block.videoId) {
               try {
-                const ytResponse = await apiFetch(`http://localhost:8080/api/courses/youtube/search?query=${encodeURIComponent(block.query)}`);
+                const ytResponse = await apiFetch(`${API_BASE_URL}/api/courses/youtube/search?query=${encodeURIComponent(block.query)}`);
                 if (ytResponse.ok) {
                   const ytData = await ytResponse.json();
                   setVideoIds(prev => ({ ...prev, [idx]: ytData.videoId }));
