@@ -1,26 +1,26 @@
 server:
-  port: 8082
+  port: ${PORT:8082}
 
 spring:
   application:
     name: Consumer
   data:
     mongodb:
-      uri: mongodb://localhost:27017/texttolearn
-      database: texttolearn
+      uri: ${MONGODB_URI:mongodb://localhost:27017/texttolearn}
+      database: ${MONGODB_DATABASE:texttolearn}
   rabbitmq:
-    host: localhost
-    port: 5672
-    username: guest
-    password: guest
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
   ai:
     openai:
       api-key: ${OPENAI_API_KEY}
 
 rabbitmq:
-  exchange: texttolearn.exchange
-  queue: texttolearn.queue
+  exchange: ${RABBITMQ_EXCHANGE:texttolearn.exchange}
+  queue: ${RABBITMQ_TOPIC_QUEUE:texttolearn.queue}
   routing-key: "topic.#"
   persistence:
-    queue: texttolearn.persistence.queue
+    queue: ${RABBITMQ_PERSISTENCE_QUEUE:texttolearn.persistence.queue}
     routing-key: "persistence.#"
