@@ -108,7 +108,7 @@ export const Layout = () => {
             {/* Top Links - Fixed */}
             <div className="flex flex-col gap-2 px-2 shrink-0">
               {links.map((link, idx) => (
-                <SidebarLink key={idx} link={link as any} />
+                <SidebarLink key={idx} link={link as any} onClick={() => setOpen(false)} />
               ))}
             </div>
 
@@ -127,6 +127,7 @@ export const Layout = () => {
                     key={course.id}
                     onClick={() => {
                       navigate('/', { state: { searchTopic: course.title } });
+                      setOpen(false);
                     }}
                     className="flex items-center gap-2 p-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-left transition-colors group w-full"
                   >
@@ -148,6 +149,7 @@ export const Layout = () => {
             {isAuthenticated ? (
               <>
                 <SidebarLink
+                  onClick={() => setOpen(false)}
                   link={{
                     label: user?.name || "User",
                     href: "#",
@@ -163,7 +165,10 @@ export const Layout = () => {
                   }}
                 />
                 <button 
-                  onClick={logout}
+                  onClick={() => {
+                    logout();
+                    setOpen(false);
+                  }}
                   className="flex items-center justify-start gap-2 group/sidebar py-2 px-2 rounded-md hover:bg-red-50 dark:hover:bg-red-900/10 text-neutral-700 dark:text-neutral-200 hover:text-red-600 dark:hover:text-red-400 transition duration-150 w-full text-left"
                 >
                   <div className="w-6 flex justify-center items-center flex-shrink-0">
@@ -174,6 +179,7 @@ export const Layout = () => {
               </>
             ) : (
               <SidebarLink
+                onClick={() => setOpen(false)}
                 link={{
                   label: "Login",
                   href: "/login",
@@ -190,7 +196,7 @@ export const Layout = () => {
 
         <div className="flex flex-col flex-1 overflow-hidden bg-neutral-50 dark:bg-neutral-950">
           <Navbar className="top-0 sticky bg-white/80 dark:bg-neutral-900/80 backdrop-blur-md border-b border-neutral-200 dark:border-neutral-800 h-16">
-            <NavBody className="h-full border-none shadow-none bg-transparent relative flex items-center justify-between">
+            <NavBody className="h-full border-none shadow-none bg-transparent relative items-center justify-between">
               <div className="flex items-center gap-2">
                  <SidebarToggle />
                  <NavbarLogo />
@@ -206,8 +212,8 @@ export const Layout = () => {
                 <Switch checked={isDarkMode} onChange={setIsDarkMode} />
               </div>
             </NavBody>
-            <MobileNav>
-              <MobileNavHeader className="relative flex items-center justify-between">
+            <MobileNav className="h-full border-none shadow-none bg-transparent relative">
+              <MobileNavHeader className="relative items-center justify-between">
                 <div className="flex items-center gap-2">
                   <SidebarToggle />
                   <NavbarLogo />
