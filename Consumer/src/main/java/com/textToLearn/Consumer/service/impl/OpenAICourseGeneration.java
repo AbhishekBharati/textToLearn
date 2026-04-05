@@ -24,7 +24,8 @@ public class OpenAICourseGeneration implements CourseGenerationService {
     @Value("${rabbitmq.persistence.routing-key}")
     private String persistenceRoutingKey;
 
-    public OpenAICourseGeneration(ChatClient.Builder builder, @Qualifier("persistenceRabbitTemplate") RabbitTemplate rabbitTemplate){
+    public OpenAICourseGeneration(ChatClient.Builder builder, 
+                                 @Qualifier("persistenceRabbitTemplate") RabbitTemplate rabbitTemplate){
         this.chatClient = builder.build();
         this.rabbitTemplate = rabbitTemplate;
     }
