@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Outlet, useNavigate, Link, useLocation } from 'react-router-dom';
+import { Outlet, useNavigate } from 'react-router-dom';
 import { SidebarBody, SidebarLink, SidebarProvider, useSidebar } from './Sidebar.tsx';
 import Switch from './ui/Switch.tsx';
-import { motion } from 'motion/react';
 import { 
   Navbar, 
   NavBody, 
@@ -12,16 +11,17 @@ import {
 } from './ui/Navbar.tsx';
 import { 
   IconMessageCircle,
-  IconBookmark,
   IconMenu2,
   IconLogout,
   IconHistory
 } from "@tabler/icons-react";
 import { cn } from "../utils/utils.ts";
 import { useAuth } from '../context/AuthContext.tsx';
+import { useCourse } from '../context/CourseContext.tsx';
 
 export const Layout = () => {
   const { isAuthenticated, user, token, logout, apiFetch } = useAuth();
+  const { courseTitle } = useCourse();
   const navigate = useNavigate();
   const [recentCourses, setRecentCourses] = useState<{id: string, title: string}[]>([]);
 
@@ -189,22 +189,35 @@ export const Layout = () => {
 
         <div className="flex flex-col flex-1 overflow-hidden bg-neutral-50 dark:bg-neutral-950">
           <Navbar className="top-0 sticky bg-white/80 dark:bg-neutral-900/80 backdrop-blur-md border-b border-neutral-200 dark:border-neutral-800 h-16">
-            <NavBody className="h-full border-none shadow-none bg-transparent">
+            <NavBody className="h-full border-none shadow-none bg-transparent relative flex items-center justify-between">
               <div className="flex items-center gap-2">
                  <SidebarToggle />
                  <NavbarLogo />
               </div>
-              <div className="flex-1" />
+              
+              <div className="absolute left-1/2 -translate-x-1/2 flex items-center justify-center w-full max-w-[300px] md:max-w-[500px] pointer-events-none">
+                 <span className="text-sm font-bold text-neutral-800 dark:text-neutral-200 truncate text-center">
+                   {courseTitle}
+                 </span>
+              </div>
+
               <div className="flex items-center justify-end gap-3 px-4">
                 <Switch checked={isDarkMode} onChange={setIsDarkMode} />
               </div>
             </NavBody>
             <MobileNav>
-              <MobileNavHeader>
+              <MobileNavHeader className="relative flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <SidebarToggle />
                   <NavbarLogo />
                 </div>
+
+                <div className="absolute left-1/2 -translate-x-1/2 flex items-center justify-center w-[150px] pointer-events-none">
+                  <span className="text-[10px] font-bold text-neutral-800 dark:text-neutral-200 truncate text-center">
+                    {courseTitle}
+                  </span>
+                </div>
+
                 <div className="flex items-center gap-2">
                   <Switch checked={isDarkMode} onChange={setIsDarkMode} /> 
                 </div>
