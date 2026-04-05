@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { IconSend, IconLayoutGrid, IconSparkles } from '@tabler/icons-react';
 import { useAuth } from '../context/AuthContext.tsx';
+import { useCourse } from '../context/CourseContext.tsx';
 import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -10,7 +11,16 @@ export const HomePage = () => {
   const [jobId, setJobId] = useState<string | null>(null);
   const [existingCourse, setExistingCourse] = useState<{id: string, title: string, description: string, modules: {id: string, title: string}[]} | null>(null);
   const { isAuthenticated, token, user, apiFetch } = useAuth();
+  const { setCourseTitle } = useCourse();
   const location = useLocation();
+
+  useEffect(() => {
+    if (existingCourse) {
+      setCourseTitle(existingCourse.title);
+    } else {
+      setCourseTitle("What do you want to learn today?");
+    }
+  }, [existingCourse]);
 
   // Polling for course status
   useEffect(() => {

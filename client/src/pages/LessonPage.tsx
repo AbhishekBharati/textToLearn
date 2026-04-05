@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useCourse } from '../context/CourseContext';
 import { motion } from 'motion/react';
 import { 
   IconChevronLeft, 
   IconVideo, 
-  IconCode, 
   IconHelpCircle, 
   IconCheck, 
   IconBulb 
@@ -16,6 +16,7 @@ interface ContentBlock {
   text?: string;
   language?: string;
   query?: string;
+  videoId?: string;
   question?: string;
   options?: string[];
   answer?: number;
@@ -32,9 +33,11 @@ export const LessonPage = () => {
   const { lessonId } = useParams();
   const navigate = useNavigate();
   const { apiFetch } = useAuth();
+  const { setCourseTitle } = useCourse();
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedAnswers, setSelectedAnswers] = useState<Record<number, number>>({});
+  const [videoIds, setVideoIds] = useState<Record<number, string>>({});
 
   useEffect(() => {
     const fetchLesson = async () => {
@@ -42,7 +45,27 @@ export const LessonPage = () => {
         const response = await apiFetch(`http://localhost:8080/api/courses/lessons/${lessonId}`);
         if (response.ok) {
           const data = await response.json();
-          setLesson(data);
+          const lessonData = data.lesson;
+          setLesson(lessonData);
+          
+          if (data.courseTitle) {
+            setCourseTitle(data.courseTitle);
+          }
+          
+          // Fetch video IDs for video blocks
+          lessonData.content.forEach(async (block: ContentBlock, idx: number) => {
+            if (block.type === 'video' && block.query && !block.videoId) {
+              try {
+                const ytResponse = await apiFetch(`http://localhost:8080/api/courses/youtube/search?query=${encodeURIComponent(block.query)}`);
+                if (ytResponse.ok) {
+                  const ytData = await ytResponse.json();
+                  setVideoIds(prev => ({ ...prev, [idx]: ytData.videoId }));
+                }
+              } catch (err) {
+                console.error('Error fetching video ID:', err);
+              }
+            }
+          });
         }
       } catch (error) {
         console.error('Error fetching lesson:', error);
@@ -52,7 +75,7 @@ export const LessonPage = () => {
     };
 
     if (lessonId) fetchLesson();
-  }, [lessonId]);
+  }, [lessonId, setCourseTitle]);
 
   const handleAnswerSelect = (blockIdx: number, optionIdx: number) => {
     setSelectedAnswers(prev => ({ ...prev, [blockIdx]: optionIdx }));
@@ -121,17 +144,34 @@ export const LessonPage = () => {
                   );
 
                 case 'video':
+                  const currentVideoId = block.videoId || videoIds[idx];
                   return (
-                    <div key={idx} className="group relative aspect-video bg-neutral-100 dark:bg-neutral-800/50 rounded-[2.5rem] flex flex-col items-center justify-center gap-6 border-2 border-dashed border-neutral-200 dark:border-neutral-700 hover:border-blue-500/50 transition-colors overflow-hidden my-12 shadow-inner">
-                      <div className="h-20 w-20 rounded-full bg-white dark:bg-neutral-900 flex items-center justify-center shadow-xl group-hover:scale-110 transition-transform z-10 border border-neutral-100 dark:border-neutral-800">
-                        <IconVideo size={36} className="text-blue-600" />
-                      </div>
-                      <div className="text-center px-6 z-10">
-                        <p className="text-neutral-400 text-[10px] font-bold uppercase tracking-[0.2em] mb-2">Recommended Video</p>
-                        <p className="text-neutral-800 dark:text-neutral-200 font-bold text-xl leading-snug max-w-sm mx-auto">
-                          "{block.query}"
-                        </p>
-                      </div>
+                    <div key={idx} className="my-12">
+                      {currentVideoId ? (
+                        <div className="aspect-video w-full rounded-[2.5rem] overflow-hidden shadow-2xl border border-neutral-200 dark:border-neutral-800">
+                          <iframe
+                            width="100%"
+                            height="100%"
+                            src={`https://www.youtube.com/embed/${currentVideoId}`}
+                            title="YouTube video player"
+                            frameBorder="0"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                            allowFullScreen
+                          ></iframe>
+                        </div>
+                      ) : (
+                        <div className="group relative aspect-video bg-neutral-100 dark:bg-neutral-800/50 rounded-[2.5rem] flex flex-col items-center justify-center gap-6 border-2 border-dashed border-neutral-200 dark:border-neutral-700 hover:border-blue-500/50 transition-colors overflow-hidden shadow-inner">
+                          <div className="h-20 w-20 rounded-full bg-white dark:bg-neutral-900 flex items-center justify-center shadow-xl group-hover:scale-110 transition-transform z-10 border border-neutral-100 dark:border-neutral-800 animate-pulse">
+                            <IconVideo size={36} className="text-blue-600" />
+                          </div>
+                          <div className="text-center px-6 z-10">
+                            <p className="text-neutral-400 text-[10px] font-bold uppercase tracking-[0.2em] mb-2">Finding Video...</p>
+                            <p className="text-neutral-800 dark:text-neutral-200 font-bold text-xl leading-snug max-w-sm mx-auto">
+                              "{block.query}"
+                            </p>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   );
 
@@ -169,7 +209,7 @@ export const LessonPage = () => {
                                 ${isAnswered && !showCorrect && !showWrong ? 'bg-neutral-50 dark:bg-neutral-900/50 border-neutral-100 dark:border-neutral-800 opacity-40' : ''}
                               `}
                             >
-                              <span className="text-lg font-medium z-10">{option}</span>
+                              <span className="text-lg font-medium z-10 text-neutral-900 dark:text-neutral-100">{option}</span>
                               {showCorrect && <IconCheck size={24} className="z-10" />}
                             </button>
                           );
