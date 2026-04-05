@@ -11,7 +11,7 @@ export const HomePage = () => {
   const [loading, setLoading] = useState(false);
   const [jobId, setJobId] = useState<string | null>(null);
   const [existingCourse, setExistingCourse] = useState<{id: string, title: string, description: string, modules: {id: string, title: string}[]} | null>(null);
-  const { isAuthenticated, token, user, apiFetch } = useAuth();
+  const { isAuthenticated, user, apiFetch } = useAuth();
   const { setCourseTitle } = useCourse();
   const location = useLocation();
 
