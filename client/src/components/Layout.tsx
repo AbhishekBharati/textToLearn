@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Outlet, useNavigate } from 'react-router-dom';
+import { Outlet, useNavigate, Link } from 'react-router-dom';
 import { SidebarBody, SidebarLink, SidebarProvider, useSidebar } from './Sidebar.tsx';
 import Switch from './ui/Switch.tsx';
 import { 
@@ -31,16 +31,36 @@ export const Layout = () => {
     
     // Optimistically add the new topic if event detail is provided
     if (event && event.detail) {
-      const topicTitle = event.detail;
+      let topicTitle: string;
+      let topicId: string | undefined;
+
+      if (typeof event.detail === 'string') {
+        topicTitle = event.detail;
+      } else {
+        topicTitle = event.detail.title;
+        topicId = event.detail.id;
+      }
+
       setRecentCourses(prev => {
         // Prevent duplicate titles
-        if (prev.some(c => c.title === topicTitle)) return prev;
+        const existingIdx = prev.findIndex(c => c.title === topicTitle);
         
-        // Add new topic at the beginning with a temporary ID
-        const newCourse = { id: `temp-${Date.now()}`, title: topicTitle };
+        if (existingIdx !== -1) {
+           // If we have a real ID now, update the existing entry and move to top
+           const updated = [...prev];
+           const item = { ...updated[existingIdx] };
+           if (topicId && !String(topicId).startsWith('temp-')) {
+             item.id = String(topicId);
+           }
+           updated.splice(existingIdx, 1);
+           return [item, ...updated].slice(0, 10);
+        }
+        
+        // Add new topic at the beginning
+        const newCourse = { id: topicId ? String(topicId) : `temp-${Date.now()}`, title: topicTitle };
         return [newCourse, ...prev].slice(0, 10);
       });
-      return; // Skip server fetch for the immediate event if we're optimistic
+      return;
     }
 
     try {
@@ -126,7 +146,12 @@ export const Layout = () => {
                   <button
                     key={course.id}
                     onClick={() => {
-                      navigate('/', { state: { searchTopic: course.title } });
+                      const idStr = String(course.id);
+                      if (idStr.startsWith('temp-')) {
+                        navigate('/', { state: { searchTopic: course.title } });
+                      } else {
+                        navigate(`/courses/${idStr}`);
+                      }
                       setOpen(false);
                     }}
                     className="flex items-center gap-2 p-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-left transition-colors group w-full"
@@ -203,7 +228,7 @@ export const Layout = () => {
               </div>
               
               <div className="absolute left-1/2 -translate-x-1/2 flex items-center justify-center w-full max-w-[300px] md:max-w-[500px] pointer-events-none">
-                 <span className="text-sm font-bold text-neutral-800 dark:text-neutral-200 truncate text-center">
+                 <span className="text-lg md:text-xl font-bold text-neutral-800 dark:text-neutral-200 truncate text-center">
                    {courseTitle}
                  </span>
               </div>
@@ -220,7 +245,7 @@ export const Layout = () => {
                 </div>
 
                 <div className="absolute left-1/2 -translate-x-1/2 flex items-center justify-center w-[150px] pointer-events-none">
-                  <span className="text-[10px] font-bold text-neutral-800 dark:text-neutral-200 truncate text-center">
+                  <span className="text-sm font-bold text-neutral-800 dark:text-neutral-200 truncate text-center">
                     {courseTitle}
                   </span>
                 </div>

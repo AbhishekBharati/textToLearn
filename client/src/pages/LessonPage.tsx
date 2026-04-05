@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCourse } from '../context/CourseContext';
 import { API_BASE_URL } from '../utils/constants';
@@ -32,10 +32,11 @@ interface Lesson {
 
 export const LessonPage = () => {
   const { lessonId } = useParams();
-  const navigate = useNavigate();
   const { apiFetch } = useAuth();
   const { setCourseTitle } = useCourse();
   const [lesson, setLesson] = useState<Lesson | null>(null);
+  const [moduleId, setModuleId] = useState<string | null>(null);
+  const [courseId, setCourseId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedAnswers, setSelectedAnswers] = useState<Record<number, number>>({});
   const [videoIds, setVideoIds] = useState<Record<number, string>>({});
@@ -48,6 +49,8 @@ export const LessonPage = () => {
           const data = await response.json();
           const lessonData = data.lesson;
           setLesson(lessonData);
+          setModuleId(data.moduleId);
+          setCourseId(data.courseId);
           
           if (data.courseTitle) {
             setCourseTitle(data.courseTitle);
@@ -98,13 +101,26 @@ export const LessonPage = () => {
   return (
     <div className="h-full bg-white dark:bg-neutral-900 transition-colors duration-200 overflow-y-auto custom-scrollbar">
       <div className="max-w-3xl mx-auto p-6 md:p-12 pb-24">
-        <button 
-          onClick={() => navigate(-1)}
-          className="flex items-center gap-2 text-neutral-500 hover:text-blue-600 mb-12 transition-colors group"
-        >
-          <IconChevronLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
-          <span className="font-medium">Back to Module</span>
-        </button>
+        <div className="flex flex-wrap gap-4 mb-12 text-sm md:text-base">
+          <Link 
+            to={moduleId ? `/modules/${moduleId}` : "/"}
+            className="flex items-center gap-2 text-neutral-500 hover:text-blue-600 transition-colors group"
+          >
+            <IconChevronLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
+            <span className="font-medium">Back to Module</span>
+          </Link>
+          {courseId && (
+            <>
+              <span className="text-neutral-300 dark:text-neutral-700">|</span>
+              <Link 
+                to={`/courses/${courseId}`}
+                className="flex items-center gap-2 text-neutral-500 hover:text-blue-600 transition-colors group"
+              >
+                <span className="font-medium">Back to Course</span>
+              </Link>
+            </>
+          )}
+        </div>
 
         <motion.article
           id="lesson-content"

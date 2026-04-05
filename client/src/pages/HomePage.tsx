@@ -1,27 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { IconSend, IconLayoutGrid, IconSparkles } from '@tabler/icons-react';
+import { IconSend, IconSparkles } from '@tabler/icons-react';
 import { useAuth } from '../context/AuthContext.tsx';
 import { useCourse } from '../context/CourseContext.tsx';
 import { API_BASE_URL } from '../utils/constants.ts';
-import { Link, useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 
 export const HomePage = () => {
   const [inputValue, setInputValue] = useState("");
   const [loading, setLoading] = useState(false);
   const [jobId, setJobId] = useState<string | null>(null);
-  const [existingCourse, setExistingCourse] = useState<{id: string, title: string, description: string, modules: {id: string, title: string}[]} | null>(null);
   const { isAuthenticated, user, apiFetch } = useAuth();
   const { setCourseTitle } = useCourse();
   const location = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
-    if (existingCourse) {
-      setCourseTitle(existingCourse.title);
-    } else {
-      setCourseTitle("What do you want to learn today?");
-    }
-  }, [existingCourse]);
+    setCourseTitle("What do you want to learn today?");
+  }, [setCourseTitle]);
 
   // Polling for course status
   useEffect(() => {
@@ -35,15 +31,19 @@ export const HomePage = () => {
           if (response.ok) {
             const data = await response.json();
             if (data.status === 'COMPLETED' && data.course) {
-              setExistingCourse(data.course);
               setJobId(null);
               clearInterval(intervalId);
-              // Dispatch event to refresh sidebar and ensure it stays there
-              window.dispatchEvent(new CustomEvent('courseAccessed', { detail: data.course.title }));
+              // Dispatch event to refresh sidebar
+              window.dispatchEvent(new CustomEvent('courseAccessed', { 
+                detail: { title: data.course.title, id: data.course.id } 
+              }));
+              // Navigate to the Course Page
+              navigate(`/courses/${data.course.id}`);
             } else if (data.status === 'FAILED') {
               alert(`Course generation failed: ${data.error || 'Unknown error'}`);
               setJobId(null);
               clearInterval(intervalId);
+              setLoading(false);
             }
           }
         } catch (error) {
@@ -58,7 +58,7 @@ export const HomePage = () => {
     return () => {
       if (intervalId) clearInterval(intervalId);
     };
-  }, [jobId, isAuthenticated]);
+  }, [jobId, isAuthenticated, navigate]);
 
   const handleSubmit = async (e?: React.FormEvent, manualTopic?: string) => {
     if (e) e.preventDefault();
@@ -67,7 +67,6 @@ export const HomePage = () => {
 
     setLoading(true);
     setJobId(null);
-    setExistingCourse(null);
     
     try {
       const response = await apiFetch(`${API_BASE_URL}/api/courses/generate`, {
@@ -81,26 +80,31 @@ export const HomePage = () => {
       const data = await response.json();
 
       if (response.status === 202) {
-        setExistingCourse(data);
         setInputValue("");
-        // Dispatch event to refresh sidebar with existing course title
-        window.dispatchEvent(new CustomEvent('courseAccessed', { detail: data.title }));
+        // Dispatch event to refresh sidebar with existing course data
+        window.dispatchEvent(new CustomEvent('courseAccessed', { 
+          detail: { title: data.title, id: data.id } 
+        }));
+        // Navigate to the Course Page
+        navigate(`/courses/${data.id}`);
       } else if (response.status === 200) {
         setJobId(data.jobId);
         setInputValue("");
         // Dispatch event to refresh sidebar with new topic title
-        window.dispatchEvent(new CustomEvent('courseAccessed', { detail: topic }));
+        window.dispatchEvent(new CustomEvent('courseAccessed', { 
+          detail: { title: topic } 
+        }));
       } else {
         alert(`Error: ${data.error}`);
+        setLoading(false);
       }
     } catch (error) {
       console.error('Error calling generate API:', error);
-    } finally {
       setLoading(false);
     }
   };
 
-  // Handle click from Recent sidebar
+  // Handle click from Recent sidebar (if any legacy search state is passed)
   useEffect(() => {
     if (location.state?.searchTopic) {
       setInputValue(location.state.searchTopic);
@@ -136,7 +140,7 @@ export const HomePage = () => {
       <div className="flex-1 w-full overflow-y-auto custom-scrollbar">
         <div className="max-w-4xl mx-auto px-6 py-12 flex flex-col items-center justify-center min-h-full">
           <AnimatePresence mode="wait">
-            {jobId ? (
+            {jobId || loading ? (
               <motion.div
                 key="loading"
                 initial={{ opacity: 0 }}
@@ -146,7 +150,7 @@ export const HomePage = () => {
               >
                 <LoadingShimmer />
               </motion.div>
-            ) : !existingCourse ? (
+            ) : (
               <motion.div 
                 key="welcome"
                 initial={{ opacity: 0, y: 20 }}
@@ -160,45 +164,6 @@ export const HomePage = () => {
                 <p className="text-2xl md:text-3xl font-medium text-neutral-500 dark:text-neutral-400 tracking-tight">
                   What do you wanna Learn Today?
                 </p>
-              </motion.div>
-            ) : (
-              <motion.div 
-                key="course"
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="w-full"
-              >
-                <div className="text-center mb-16">
-                  <span className="inline-block px-4 py-1.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-sm font-bold uppercase tracking-widest mb-6">
-                    Ready to Start
-                  </span>
-                  <h1 className="text-4xl md:text-5xl font-extrabold text-neutral-900 dark:text-neutral-100 mb-6 leading-tight tracking-tight">
-                    {existingCourse.title}
-                  </h1>
-                  <p className="text-xl text-neutral-600 dark:text-neutral-400 max-w-2xl mx-auto leading-relaxed">
-                    {existingCourse.description}
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {existingCourse.modules.map((module, idx) => (
-                    <Link 
-                      key={module.id} 
-                      to={`/modules/${module.id}`}
-                      className="flex items-center gap-5 p-8 bg-neutral-50 dark:bg-neutral-800/40 rounded-[2.5rem] border border-neutral-200 dark:border-neutral-800 hover:border-blue-500 hover:bg-white dark:hover:bg-neutral-800 transition-all group shadow-sm"
-                    >
-                      <div className="h-14 w-14 rounded-2xl bg-white dark:bg-neutral-900 flex items-center justify-center shadow-xl border border-neutral-100 dark:border-neutral-800 group-hover:scale-110 group-hover:text-blue-600 transition-all">
-                        <IconLayoutGrid size={28} />
-                      </div>
-                      <div className="flex-1 text-left">
-                        <h3 className="font-bold text-xs text-blue-600 dark:text-blue-400 uppercase tracking-[0.2em] mb-1">Module {idx + 1}</h3>
-                        <p className="text-xl font-bold text-neutral-800 dark:text-neutral-200 leading-tight">
-                          {module.title}
-                        </p>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
               </motion.div>
             )}
           </AnimatePresence>

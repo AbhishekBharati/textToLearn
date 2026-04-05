@@ -208,10 +208,44 @@ public class CourseController {
         }
     }
 
-    @GetMapping("/modules/{moduleId}/lessons")
-    public ResponseEntity<?> getLessonsByModule(@RequestHeader("Authorization") String authHeader, @PathVariable String moduleId) {
+    @GetMapping("/view/{courseId}")
+    public ResponseEntity<?> getCourseById(@RequestHeader(value = "Authorization", required = false) String authHeader, @PathVariable String courseId) {
         try {
-            googleAuthService.verifyToken(authHeader.substring(7));
+            Optional<Course> courseOpt = courseRepository.findById(courseId);
+            if (courseOpt.isPresent()) {
+                Course course = courseOpt.get();
+                
+                // Optional: add to recent if token is valid
+                if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                    try {
+                        String sub = googleAuthService.verifyToken(authHeader.substring(7)).getSubject();
+                        addToRecent(sub, course.getId());
+                    } catch (Exception e) {
+                        // Ignore auth errors for "view only" access
+                    }
+                }
+
+                List<Module> fullModules = (List<Module>) moduleRepository.findAllById(course.getModules());
+                
+                return ResponseEntity.ok(Map.of(
+                    "id", course.getId(),
+                    "title", course.getTitle(),
+                    "description", course.getDescription(),
+                    "modules", fullModules.stream().map(m -> Map.of(
+                        "id", m.getId(),
+                        "title", m.getTitle()
+                    )).collect(Collectors.toList())
+                ));
+            }
+            return ResponseEntity.notFound().build();
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @GetMapping("/modules/{moduleId}/lessons")
+    public ResponseEntity<?> getLessonsByModule(@RequestHeader(value = "Authorization", required = false) String authHeader, @PathVariable String moduleId) {
+        try {
             Optional<Module> moduleOpt = moduleRepository.findById(moduleId);
             if (moduleOpt.isPresent()) {
                 Module module = moduleOpt.get();
@@ -223,33 +257,37 @@ public class CourseController {
                 response.put("moduleTitle", module.getTitle());
                 if (module.getCourse() != null) {
                     response.put("courseTitle", module.getCourse().getTitle());
+                    response.put("courseId", module.getCourse().getId());
                 }
                 
                 return ResponseEntity.ok(response);
             }
             return ResponseEntity.notFound().build();
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
     @GetMapping("/lessons/{lessonId}")
-    public ResponseEntity<?> getLessonById(@RequestHeader("Authorization") String authHeader, @PathVariable String lessonId) {
+    public ResponseEntity<?> getLessonById(@RequestHeader(value = "Authorization", required = false) String authHeader, @PathVariable String lessonId) {
         try {
-            googleAuthService.verifyToken(authHeader.substring(7));
             Optional<com.textToLearn.server.model.Lesson> lessonOpt = lessonRepository.findById(lessonId);
             if (lessonOpt.isPresent()) {
                 com.textToLearn.server.model.Lesson lesson = lessonOpt.get();
                 Map<String, Object> response = new HashMap<>();
                 response.put("lesson", lesson);
-                if (lesson.getModule() != null && lesson.getModule().getCourse() != null) {
-                    response.put("courseTitle", lesson.getModule().getCourse().getTitle());
+                if (lesson.getModule() != null) {
+                    response.put("moduleId", lesson.getModule().getId());
+                    if (lesson.getModule().getCourse() != null) {
+                        response.put("courseTitle", lesson.getModule().getCourse().getTitle());
+                        response.put("courseId", lesson.getModule().getCourse().getId());
+                    }
                 }
                 return ResponseEntity.ok(response);
             }
             return ResponseEntity.notFound().build();
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 

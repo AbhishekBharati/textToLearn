@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCourse } from '../context/CourseContext';
 import { API_BASE_URL } from '../utils/constants';
@@ -14,11 +14,11 @@ interface Lesson {
 
 export const ModulePage = () => {
   const { moduleId } = useParams();
-  const navigate = useNavigate();
   const { apiFetch } = useAuth();
   const { setCourseTitle } = useCourse();
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [moduleTitle, setModuleTitle] = useState("");
+  const [courseId, setCourseId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -29,6 +29,7 @@ export const ModulePage = () => {
           const data = await response.json();
           setLessons(data.lessons);
           setModuleTitle(data.moduleTitle);
+          setCourseId(data.courseId);
           if (data.courseTitle) {
             setCourseTitle(data.courseTitle);
           }
@@ -46,16 +47,16 @@ export const ModulePage = () => {
   return (
     <div className="h-full bg-white dark:bg-neutral-900 transition-colors duration-200 overflow-y-auto custom-scrollbar">
       <div className="max-w-4xl mx-auto p-6 md:p-12">
-        <button 
-          onClick={() => navigate(-1)}
+        <Link 
+          to={courseId ? `/courses/${courseId}` : "/"}
           className="flex items-center gap-2 text-neutral-500 hover:text-blue-600 mb-10 transition-colors group"
         >
           <IconChevronLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
           <span className="font-medium">Back to Course</span>
-        </button>
+        </Link>
 
         <header className="mb-12">
-          <h1 className="text-3xl md:text-4xl font-bold text-neutral-900 dark:text-neutral-100 mb-4 tracking-tight">
+          <h1 className="text-4xl md:text-5xl font-bold text-neutral-900 dark:text-neutral-100 mb-4 tracking-tight">
             {moduleTitle || "Module Content"}
           </h1>
           <p className="text-neutral-500 dark:text-neutral-400 text-lg">

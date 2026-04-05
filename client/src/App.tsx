@@ -5,6 +5,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { CourseProvider } from './context/CourseContext';
 import { LoginPage } from './pages/LoginPage';
 import { HomePage } from './pages/HomePage';
+import { CoursePage } from './pages/CoursePage';
 import { ModulePage } from './pages/ModulePage';
 import { LessonPage } from './pages/LessonPage';
 import { Layout } from './components/Layout';
@@ -32,6 +33,7 @@ function App() {
                 }
               >
                 <Route path="/" element={<HomePage />} />
+                <Route path="/courses/:courseId" element={<CoursePage />} />
                 <Route path="/modules/:moduleId" element={<ModulePage />} />
                 <Route path="/lessons/:lessonId" element={<LessonPage />} />
               </Route>
