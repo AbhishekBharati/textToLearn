@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useCourse } from '../context/CourseContext';
 import { motion } from 'motion/react';
 import { IconChevronLeft, IconBook, IconCircleCheck } from '@tabler/icons-react';
 
@@ -14,7 +15,9 @@ export const ModulePage = () => {
   const { moduleId } = useParams();
   const navigate = useNavigate();
   const { apiFetch } = useAuth();
+  const { setCourseTitle } = useCourse();
   const [lessons, setLessons] = useState<Lesson[]>([]);
+  const [moduleTitle, setModuleTitle] = useState("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -23,7 +26,11 @@ export const ModulePage = () => {
         const response = await apiFetch(`http://localhost:8080/api/courses/modules/${moduleId}/lessons`);
         if (response.ok) {
           const data = await response.json();
-          setLessons(data);
+          setLessons(data.lessons);
+          setModuleTitle(data.moduleTitle);
+          if (data.courseTitle) {
+            setCourseTitle(data.courseTitle);
+          }
         }
       } catch (error) {
         console.error('Error fetching lessons:', error);
@@ -33,7 +40,7 @@ export const ModulePage = () => {
     };
 
     if (moduleId) fetchLessons();
-  }, [moduleId]);
+  }, [moduleId, setCourseTitle]);
 
   return (
     <div className="h-full bg-white dark:bg-neutral-900 transition-colors duration-200 overflow-y-auto custom-scrollbar">
@@ -48,7 +55,7 @@ export const ModulePage = () => {
 
         <header className="mb-12">
           <h1 className="text-3xl md:text-4xl font-bold text-neutral-900 dark:text-neutral-100 mb-4 tracking-tight">
-            Module Content
+            {moduleTitle || "Module Content"}
           </h1>
           <p className="text-neutral-500 dark:text-neutral-400 text-lg">
             Complete the lessons below to master this section.

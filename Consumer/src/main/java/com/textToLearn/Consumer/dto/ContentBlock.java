@@ -7,6 +7,7 @@ public record ContentBlock(
         String text,
         String language,
         String query,
+        String videoId,
         String question,
         List<String> options,
         Integer answer,

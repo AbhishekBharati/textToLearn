@@ -10,6 +10,7 @@ import com.textToLearn.server.repository.JobStatusRepository;
 import com.textToLearn.server.repository.LessonRepository;
 import com.textToLearn.server.repository.ModuleRepository;
 import com.textToLearn.server.repository.UserRepository;
+import com.textToLearn.server.service.YouTubeSearchService;
 import com.textToLearn.server.service.impl.GoogleAuthService;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,6 +30,9 @@ public class CourseController {
 
     @Autowired
     private GoogleAuthService googleAuthService;
+
+    @Autowired
+    private YouTubeSearchService youtubeSearchService;
 
     @Autowired
     private CourseRepository courseRepository;
@@ -211,8 +215,18 @@ public class CourseController {
             googleAuthService.verifyToken(authHeader.substring(7));
             Optional<Module> moduleOpt = moduleRepository.findById(moduleId);
             if (moduleOpt.isPresent()) {
-                List<String> lessonIds = moduleOpt.get().getLessons();
-                return ResponseEntity.ok(lessonRepository.findAllById(lessonIds));
+                Module module = moduleOpt.get();
+                List<String> lessonIds = module.getLessons();
+                List<?> lessons = (List<?>) lessonRepository.findAllById(lessonIds);
+                
+                Map<String, Object> response = new HashMap<>();
+                response.put("lessons", lessons);
+                response.put("moduleTitle", module.getTitle());
+                if (module.getCourse() != null) {
+                    response.put("courseTitle", module.getCourse().getTitle());
+                }
+                
+                return ResponseEntity.ok(response);
             }
             return ResponseEntity.notFound().build();
         } catch (Exception e) {
@@ -224,9 +238,28 @@ public class CourseController {
     public ResponseEntity<?> getLessonById(@RequestHeader("Authorization") String authHeader, @PathVariable String lessonId) {
         try {
             googleAuthService.verifyToken(authHeader.substring(7));
-            return ResponseEntity.of(lessonRepository.findById(lessonId));
+            Optional<com.textToLearn.server.model.Lesson> lessonOpt = lessonRepository.findById(lessonId);
+            if (lessonOpt.isPresent()) {
+                com.textToLearn.server.model.Lesson lesson = lessonOpt.get();
+                Map<String, Object> response = new HashMap<>();
+                response.put("lesson", lesson);
+                if (lesson.getModule() != null && lesson.getModule().getCourse() != null) {
+                    response.put("courseTitle", lesson.getModule().getCourse().getTitle());
+                }
+                return ResponseEntity.ok(response);
+            }
+            return ResponseEntity.notFound().build();
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
+    }
+
+    @GetMapping("/youtube/search")
+    public ResponseEntity<?> searchYouTube(@RequestParam String query) {
+        String videoId = youtubeSearchService.searchVideoId(query);
+        if (videoId != null) {
+            return ResponseEntity.ok(Map.of("videoId", videoId));
+        }
+        return ResponseEntity.notFound().build();
     }
 }
