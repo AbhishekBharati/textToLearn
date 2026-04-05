@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { Outlet, useNavigate, Link, useLocation } from 'react-router-dom';
 import { SidebarBody, SidebarLink, SidebarProvider, useSidebar } from './Sidebar.tsx';
 import { DownloadComponent } from './DownloadComponent.tsx';
-import { SaveCourse } from './SaveCourse.tsx';
 import Switch from './ui/Switch.tsx';
 import { motion } from 'motion/react';
 import { 
@@ -23,12 +22,12 @@ import { cn } from "../utils/utils.ts";
 import { useAuth } from '../context/AuthContext.tsx';
 
 export const Layout = () => {
-  const { isAuthenticated, user, token, logout } = useAuth();
+  const { isAuthenticated, user, token, logout, apiFetch } = useAuth();
   const navigate = useNavigate();
   const [recentCourses, setRecentCourses] = useState<{id: string, title: string}[]>([]);
 
   const fetchRecent = async (event?: any) => {
-    if (!isAuthenticated || !token) return;
+    if (!isAuthenticated) return;
     
     // Optimistically add the new topic if event detail is provided
     if (event && event.detail) {
@@ -45,9 +44,7 @@ export const Layout = () => {
     }
 
     try {
-      const response = await fetch('http://localhost:8080/api/courses/recent', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const response = await apiFetch('http://localhost:8080/api/courses/recent');
       if (response.ok) {
         const data = await response.json();
         setRecentCourses(data);
@@ -69,13 +66,6 @@ export const Layout = () => {
       href: "/",
       icon: (
         <IconMessageCircle size={20} className="text-neutral-700 dark:text-neutral-200" />
-      ),
-    },
-    {
-      label: "Saved Course",
-      href: "/saved-courses",
-      icon: (
-        <IconBookmark size={20} className="text-neutral-700 dark:text-neutral-200" />
       ),
     },
   ];
@@ -103,10 +93,10 @@ export const Layout = () => {
         "flex flex-col md:flex-row bg-white dark:bg-neutral-900 w-full flex-1 max-w-7xl mx-auto border-x border-neutral-200 dark:border-neutral-800 overflow-hidden",
         "h-screen" 
       )}>
-        <SidebarBody className="justify-between gap-10 border-r border-neutral-200 dark:border-neutral-800 !p-0">
-          <div className="flex flex-col flex-1 overflow-y-auto custom-scrollbar">
-            {/* Standardized Header */}
-            <div className="h-16 flex items-center px-4 mb-4">
+        <SidebarBody className="justify-between border-r border-neutral-200 dark:border-neutral-800 !p-0">
+          <div className="flex flex-col flex-1 overflow-hidden">
+            {/* Standardized Header - Fixed */}
+            <div className="h-16 flex items-center px-4 mb-4 shrink-0">
                <div className="w-6 flex justify-center items-center">
                  <IconMenu2 
                    className="text-neutral-800 dark:text-neutral-200 cursor-pointer h-5 w-5" 
@@ -115,14 +105,15 @@ export const Layout = () => {
                </div>
             </div>
 
-            <div className="flex flex-col gap-2 px-2">
+            {/* Top Links - Fixed */}
+            <div className="flex flex-col gap-2 px-2 shrink-0">
               {links.map((link, idx) => (
                 <SidebarLink key={idx} link={link as any} />
               ))}
             </div>
 
-            {/* Recent Section */}
-            <div className="mt-10 px-2">
+            {/* Recent Section - Scrollable */}
+            <div className="mt-10 px-2 flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar">
               <div className="flex items-center gap-2 text-neutral-400 dark:text-neutral-500 mb-4 px-2">
                 <div className="w-6 flex justify-center items-center">
                   <IconHistory size={18} />
@@ -130,7 +121,7 @@ export const Layout = () => {
                 {open && <span className="text-[10px] font-bold uppercase tracking-[0.2em] whitespace-nowrap">Recent</span>}
               </div>
               
-              <div className="flex flex-col gap-1">
+              <div className="flex flex-col gap-1 pb-4">
                 {recentCourses.map((course) => (
                   <button
                     key={course.id}
@@ -153,7 +144,7 @@ export const Layout = () => {
             </div>
           </div>
 
-          <div className="flex flex-col gap-2 border-t border-neutral-200 dark:border-neutral-800 p-2 pb-4">
+          <div className="flex flex-col gap-2 border-t border-neutral-200 dark:border-neutral-800 p-2 pb-4 shrink-0">
             {isAuthenticated ? (
               <>
                 <SidebarLink
@@ -208,7 +199,6 @@ export const Layout = () => {
               <div className="flex items-center justify-end gap-3 px-4">
                 <Switch checked={isDarkMode} onChange={setIsDarkMode} />
                 <DownloadComponent />
-                <SaveCourse />
               </div>
             </NavBody>
             <MobileNav>
@@ -220,7 +210,6 @@ export const Layout = () => {
                 <div className="flex items-center gap-2">
                   <Switch checked={isDarkMode} onChange={setIsDarkMode} /> 
                   <DownloadComponent />
-                  <SaveCourse />
                 </div>
               </MobileNavHeader>
             </MobileNav>
