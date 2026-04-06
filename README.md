@@ -1,4 +1,4 @@
-# TechEaze: AI-Powered Text-to-Learn Platform
+# TechEaze: AI-Powered Event Driven Text-to-Learn Platform
 
 TechEaze is an advanced educational platform designed to transform simple text prompts into comprehensive, structured learning paths. By leveraging Generative AI, TechEaze provides users with personalized courses complete with modules, lessons, video content, and interactive assessments.
 
