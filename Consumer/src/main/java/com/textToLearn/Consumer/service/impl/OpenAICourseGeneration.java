@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.ai.chat.client.ChatClient;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -48,9 +49,9 @@ public class OpenAICourseGeneration implements CourseGenerationService {
                 .jobId(jobId)
                 .build());
 
-        List<ModuleContent> fullModules = courseOutline.modules().parallelStream().map( module -> {
+        List<ModuleContent> fullModules = Optional.ofNullable(courseOutline.modules()).orElse(List.of()).parallelStream().map( module -> {
 
-            List<LessonContent> detailedLessons = module.lessons().parallelStream().map(lesson -> {
+            List<LessonContent> detailedLessons = Optional.ofNullable(module.lessons()).orElse(List.of()).parallelStream().map(lesson -> {
                 LessonContent lessonContent = generateLessonContent(courseOutline.title(), module.title(), lesson.title());
                 
                 // Publish Lesson Content for Persistence

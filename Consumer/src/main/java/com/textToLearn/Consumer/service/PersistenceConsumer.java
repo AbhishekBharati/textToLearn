@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -86,14 +87,15 @@ public class PersistenceConsumer {
                 .orElse(Course.builder()
                         .title(outline.title())
                         .description(outline.description())
-                        .tags(outline.tags())
+                        .tags(Optional.ofNullable(outline.tags()).orElse(List.of()))
                         .creator(creator)
                         .modules(new ArrayList<>())
                         .build());
         
         course = courseRepository.save(course);
         
-        for (var moduleDto : outline.modules()) {
+        List<com.textToLearn.Consumer.dto.CourseModule> modules = Optional.ofNullable(outline.modules()).orElse(List.of());
+        for (var moduleDto : modules) {
             final Course finalCourse = course;
             Module module = moduleRepository.findByTitleAndCourse(moduleDto.title(), course)
                     .orElse(Module.builder()
@@ -124,7 +126,7 @@ public class PersistenceConsumer {
                 
                 Lesson lesson = Lesson.builder()
                         .title(lessonContent.title())
-                        .content(new ArrayList<>(lessonContent.content()))
+                        .content(new ArrayList<>(Optional.ofNullable(lessonContent.content()).orElse(List.of())))
                         .isEnriched(true)
                         .module(module)
                         .build();
