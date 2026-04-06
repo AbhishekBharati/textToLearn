@@ -113,6 +113,8 @@ public class OpenAICourseGeneration implements CourseGenerationService {
                 3. Include a "video" block with a highly relevant YouTube search query (do not provide a direct URL).
                 4. Include a "code" block ONLY if it is directly relevant to the topic.
                 5. End the content array with 4-5 "mcq" blocks. Each MCQ must include the question, an array of options, the correct answer index, and a brief explanation.
+                6. IMPORTANT: Ensure the output is strictly valid JSON. Do not include any text outside the JSON structure. 
+                7. CRITICAL: Properly escape all special characters. All backslashes in text or code must be double-escaped (\\\\). Do not use illegal escape sequences like a backslash followed by a space.
                 
                 {format}
                 """;
