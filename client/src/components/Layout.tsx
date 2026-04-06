@@ -60,7 +60,6 @@ export const Layout = () => {
         const newCourse = { id: topicId ? String(topicId) : `temp-${Date.now()}`, title: topicTitle };
         return [newCourse, ...prev].slice(0, 10);
       });
-      return;
     }
 
     try {
