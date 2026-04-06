@@ -1,5 +1,8 @@
 package com.textToLearn.Consumer.service.impl;
 
+import com.fasterxml.jackson.core.json.JsonReadFeature;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.textToLearn.Consumer.dto.*;
 import com.textToLearn.Consumer.service.CourseGenerationService;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -17,6 +20,7 @@ public class OpenAICourseGeneration implements CourseGenerationService {
 
     private final ChatClient chatClient;
     private final RabbitTemplate rabbitTemplate;
+    private final ObjectMapper objectMapper;
 
     @Value("${rabbitmq.exchange}")
     private String exchange;
@@ -28,6 +32,9 @@ public class OpenAICourseGeneration implements CourseGenerationService {
                                  @Qualifier("persistenceRabbitTemplate") RabbitTemplate rabbitTemplate){
         this.chatClient = builder.build();
         this.rabbitTemplate = rabbitTemplate;
+        this.objectMapper = new ObjectMapper();
+        this.objectMapper.configure(JsonReadFeature.ALLOW_BACKSLASH_ESCAPING_ANY_CHARACTER.mappedFeature(), true);
+        this.objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     }
 
     public FullCourseResponse generateFullCourse(String topic, String creator, String jobId){
@@ -80,7 +87,7 @@ public class OpenAICourseGeneration implements CourseGenerationService {
     }
 
     public CourseResponse generateOutline(String topic){
-        var outputConverter = new BeanOutputConverter<>(CourseResponse.class);
+        var outputConverter = new BeanOutputConverter<>(CourseResponse.class, objectMapper);
         String outlinePrompt = """
                 You are an expert curriculum designer. Create a highly structured course outline for the topic: "{topic}".
                 The curriculum must progress logically from foundational to advanced concepts.
@@ -99,7 +106,7 @@ public class OpenAICourseGeneration implements CourseGenerationService {
     }
 
     private LessonContent generateLessonContent(String courseTitle, String moduleTitle, String lessonTitle) {
-        var outputConverter = new BeanOutputConverter<>(LessonContent.class);
+        var outputConverter = new BeanOutputConverter<>(LessonContent.class, objectMapper);
 
         String lessonPrompt = """
                 You are an expert technical instructor. Generate detailed lesson content for a specific lesson within a course.
