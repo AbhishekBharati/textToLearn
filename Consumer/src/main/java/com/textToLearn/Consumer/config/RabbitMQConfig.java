@@ -1,5 +1,8 @@
 package com.textToLearn.Consumer.config;
 
+import com.fasterxml.jackson.core.json.JsonReadFeature;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.amqp.core.*;
 import org.springframework.amqp.rabbit.config.SimpleRabbitListenerContainerFactory;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
@@ -54,24 +57,36 @@ public class RabbitMQConfig {
     }
 
     @Bean
-    public MessageConverter jsonMessageConverter() {
-        return new Jackson2JsonMessageConverter();
+    public ObjectMapper lenientObjectMapper() {
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.configure(JsonReadFeature.ALLOW_BACKSLASH_ESCAPING_ANY_CHARACTER.mappedFeature(), true);
+        mapper.configure(JsonReadFeature.ALLOW_JAVA_COMMENTS.mappedFeature(), true);
+        mapper.configure(JsonReadFeature.ALLOW_YAML_COMMENTS.mappedFeature(), true);
+        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        mapper.configure(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY, true);
+        mapper.configure(DeserializationFeature.UNWRAP_SINGLE_VALUE_ARRAYS, true);
+        return mapper;
+    }
+
+    @Bean
+    public MessageConverter jsonMessageConverter(ObjectMapper lenientObjectMapper) {
+        return new Jackson2JsonMessageConverter(lenientObjectMapper);
     }
 
     // DEDICATED TEMPLATE for sending JSON (AI Generator will use this)
     @Bean(name = "persistenceRabbitTemplate")
-    public RabbitTemplate persistenceRabbitTemplate(ConnectionFactory connectionFactory) {
+    public RabbitTemplate persistenceRabbitTemplate(ConnectionFactory connectionFactory, ObjectMapper lenientObjectMapper) {
         RabbitTemplate template = new RabbitTemplate(connectionFactory);
-        template.setMessageConverter(jsonMessageConverter());
+        template.setMessageConverter(jsonMessageConverter(lenientObjectMapper));
         return template;
     }
 
     // DEDICATED FACTORY for receiving JSON (PersistenceConsumer will use this)
     @Bean
-    public SimpleRabbitListenerContainerFactory jsonListenerContainerFactory(ConnectionFactory connectionFactory) {
+    public SimpleRabbitListenerContainerFactory jsonListenerContainerFactory(ConnectionFactory connectionFactory, ObjectMapper lenientObjectMapper) {
         SimpleRabbitListenerContainerFactory factory = new SimpleRabbitListenerContainerFactory();
         factory.setConnectionFactory(connectionFactory);
-        factory.setMessageConverter(jsonMessageConverter());
+        factory.setMessageConverter(jsonMessageConverter(lenientObjectMapper));
         return factory;
     }
 }

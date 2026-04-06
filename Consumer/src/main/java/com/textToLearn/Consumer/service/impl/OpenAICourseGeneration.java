@@ -29,12 +29,11 @@ public class OpenAICourseGeneration implements CourseGenerationService {
     private String persistenceRoutingKey;
 
     public OpenAICourseGeneration(ChatClient.Builder builder, 
-                                 @Qualifier("persistenceRabbitTemplate") RabbitTemplate rabbitTemplate){
+                                 @Qualifier("persistenceRabbitTemplate") RabbitTemplate rabbitTemplate,
+                                 @Qualifier("lenientObjectMapper") ObjectMapper objectMapper){
         this.chatClient = builder.build();
         this.rabbitTemplate = rabbitTemplate;
-        this.objectMapper = new ObjectMapper();
-        this.objectMapper.configure(JsonReadFeature.ALLOW_BACKSLASH_ESCAPING_ANY_CHARACTER.mappedFeature(), true);
-        this.objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        this.objectMapper = objectMapper;
     }
 
     public FullCourseResponse generateFullCourse(String topic, String creator, String jobId){
